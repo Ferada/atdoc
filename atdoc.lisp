@@ -39,7 +39,7 @@
 	(setf file (merge-pathnames file base))))
     (namestring file)))
 
-#+sbcl
+#+(or sbcl lispworks)
 (defun run-shell-command (directory output command &rest args)
   ;; fixme: escape the namestrings properly, or use a function calling
   ;; exec rather system.
@@ -75,6 +75,25 @@
     (unless (zerop exitcode)
       (error "running ~A failed with code ~A [~%~A~%]"
 	     command exitcode stderr))))
+
+#||
+;; does not work as-is, but could be made to work if the caller
+;; used the full path to the executable.
+#+lispworks
+(defun run-shell-command (directory output command &rest args)
+  (let ((original-directory (hcl:get-working-directory)))
+    (unwind-protect
+        (progn
+          (hcl:change-directory directory)
+          (multiple-value-bind (exitcode res-output)
+              (system:call-system-showing-output  (cons command args)
+                                                  :wait t :output-stream output)
+            (unless (zerop exitcode)
+              (error "running ~A failed with code ~A"
+                     command exitcode))
+            res-output))
+      (hcl:change-directory original-directory))))
+||#
 
 (defvar *stylesheets*)
 
@@ -467,15 +486,18 @@
     #+sbcl (sb-pcl:finalize-inheritance class)
     #+allegro (unless (typep class 'structure-class)
 		(aclmop:finalize-inheritance class))
+    #+lispworks (clos:finalize-inheritance class)
     (cxml:with-element "cpl"
       (dolist (super (cdr #+sbcl (sb-pcl:class-precedence-list class)
-			  #+allegro (aclmop:class-precedence-list class)))
+			  #+allegro (aclmop:class-precedence-list class)
+                          #+lispworks (hcl:class-precedence-list class)))
 	(cxml:with-element "superclass"
 	  (random-name (class-name super) other-packages "class"))))
     (cxml:with-element "subclasses"
       (labels ((recurse (c)
 		 (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
-			      #+allegro (aclmop:class-direct-subclasses c))
+			      #+allegro (aclmop:class-direct-subclasses c)
+                              #+lispworks (hcl:class-direct-subclasses c))
 		   (if (good-symbol-p (class-name sub) other-packages)
 		       (cxml:with-element "subclass"
 			 (random-name (class-name sub) other-packages "class"))
@@ -537,7 +559,7 @@
 		((eql (peek-char nil stream nil) #\})
 		  (write-char (read-char stream) out))
 		((eql (peek-char nil stream nil) #\@)
-		  (write-char c out))
+		  (write-char (read-char stream) out))
 		(t
 		  (characters handler (get-output-stream-string out))
 		  (let ((name (read-delimited-string stream "[{ :")))
