@@ -626,6 +626,10 @@
     <br/><br/>
   </xsl:template>
 
+  <xsl:template match="br">
+      <br/>
+  </xsl:template>
+
   <xsl:template match="sections">
     <xsl:for-each select="section">
       <h2>
@@ -687,6 +691,30 @@
       <div class="def">
 	<a href="{@id}.html">
 	  Class
+	  <xsl:value-of select="@name"/>
+	</a>
+      </div>
+      <div style="margin-left: 3em">
+	<xsl:choose>
+	  <xsl:when test="documentation-string//short">
+	    <xsl:apply-templates select="documentation-string//short"/>
+	    <xsl:text> </xsl:text>
+	    <a href="{@id}.html#details">...</a>
+	  </xsl:when>
+	  <xsl:otherwise>
+	    <xsl:apply-templates select="documentation-string"/>
+	  </xsl:otherwise>
+	</xsl:choose>
+      </div>
+      <br/>
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template match="abouttype">
+    <xsl:for-each select="key('class-by-name', text())">
+      <div class="def">
+	<a href="{@id}.html">
+	  Type
 	  <xsl:value-of select="@name"/>
 	</a>
       </div>
