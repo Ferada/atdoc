@@ -584,10 +584,34 @@
     </ul>
   </xsl:template>
 
+  <xsl:template match="enumerate">
+    <ol>
+      <xsl:apply-templates/>
+    </ol>
+  </xsl:template>
+
   <xsl:template match="item">
     <li>
       <xsl:apply-templates/>
     </li>
+  </xsl:template>
+
+
+  <xsl:template match="table">
+    <dl>
+      <xsl:apply-templates/>
+    </dl>
+  </xsl:template>
+
+  <xsl:template match="entry">
+    <dt>
+      <tt>
+        <xsl:value-of select="@entry"/>
+      </tt>
+    </dt>
+    <dd>
+      <xsl:apply-templates/>
+    </dd>
   </xsl:template>
 
   <xsl:template match="see">
@@ -646,19 +670,20 @@
 	<xsl:call-template name="about-arguments">
 	  <xsl:with-param name="label" select="'Function'"/>
 	</xsl:call-template>
+      <br/>
       </xsl:for-each>
-      <div style="margin-left: 3em">
 	<xsl:choose>
 	  <xsl:when test="documentation-string//short">
-	    <xsl:apply-templates select="documentation-string//short"/>
-	    <xsl:text> </xsl:text>
-	    <a href="{@id}.html#details">...</a>
+            <div class="indent">
+              <xsl:apply-templates select="documentation-string//short"/>
+              <xsl:text> </xsl:text>
+              <a href="{@id}.html#details">...</a>
+            </div>
 	  </xsl:when>
 	  <xsl:otherwise>
 	    <xsl:apply-templates select="documentation-string"/>
 	  </xsl:otherwise>
 	</xsl:choose>
-      </div>
       <br/>
     </xsl:for-each>
   </xsl:template>
@@ -669,19 +694,20 @@
 	<xsl:call-template name="about-arguments">
 	  <xsl:with-param name="label" select="'Macro'"/>
 	</xsl:call-template>
+      <br/>
       </xsl:for-each>
-      <div style="margin-left: 3em">
 	<xsl:choose>
 	  <xsl:when test="documentation-string//short">
-	    <xsl:apply-templates select="documentation-string//short"/>
-	    <xsl:text> </xsl:text>
-	    <a href="{@id}.html#details">...</a>
+              <div class="indent">
+	      <xsl:apply-templates select="documentation-string//short"/>
+	      <xsl:text> </xsl:text>
+	      <a href="{@id}.html#details">...</a>
+            </div>
 	  </xsl:when>
 	  <xsl:otherwise>
 	    <xsl:apply-templates select="documentation-string"/>
 	  </xsl:otherwise>
 	</xsl:choose>
-      </div>
       <br/>
     </xsl:for-each>
   </xsl:template>
