@@ -41,7 +41,7 @@
    @arg[title]{This string will be used as the document's title.}
    @arg[include-slot-definitions-p]{A boolean.}
    @return{The pathname of the generated file documentation.pdf, or nil.}
-   Generates TeX documentation for @code{packages}.
+   Generates Info documentation for @code{packages}.
 
    With @code{run-tex-p} (the default), pdflatex is run automatically to
    generate a PDF file.
