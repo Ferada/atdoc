@@ -351,10 +351,34 @@
     </ul>
   </xsl:template>
 
+  <xsl:template match="enumerate">
+    <ol>
+      <xsl:apply-templates/>
+    </ol>
+  </xsl:template>
+
   <xsl:template match="item">
     <li>
       <xsl:apply-templates/>
     </li>
+  </xsl:template>
+
+
+  <xsl:template match="table">
+    <dl>
+      <xsl:apply-templates/>
+    </dl>
+  </xsl:template>
+
+  <xsl:template match="entry">
+    <dt>
+      <tt>
+        <xsl:value-of select="@entry"/>
+      </tt>
+    </dt>
+    <dd>
+      <xsl:apply-templates/>
+    </dd>
   </xsl:template>
 
   <xsl:template match="see">
@@ -380,6 +404,10 @@
 
   <xsl:template match="break">
     <br/><br/>
+  </xsl:template>
+
+  <xsl:template match="br">
+      <br/>
   </xsl:template>
 
   <xsl:template match="sections">
@@ -422,7 +450,6 @@
 	<xsl:call-template name="main-documentation-string"/>
       </div>
     </div>
-    <br/>
   </xsl:template>
 
   <xsl:template match="macro-definition">
@@ -441,7 +468,6 @@
 	<xsl:call-template name="main-documentation-string"/>
       </div>
     </div>
-    <br/>
   </xsl:template>
 
   <xsl:template match="class-definition">
@@ -489,7 +515,6 @@
 	<xsl:call-template name="main-documentation-string"/>
       </div>
     </div>
-    <br/>
   </xsl:template>
 
   <xsl:template match="type-definition">
@@ -501,7 +526,6 @@
 	<xsl:call-template name="main-documentation-string"/>
       </div>
     </div>
-    <br/>
   </xsl:template>
 
   <xsl:template match="variable-definition">
@@ -513,7 +537,6 @@
 	<xsl:call-template name="main-documentation-string"/>
       </div>
     </div>
-    <br/>
   </xsl:template>
 
   <xsl:template name="undocumented">
@@ -570,3 +593,4 @@
     </xsl:if>
   </xsl:template>
 </xsl:stylesheet>
+
