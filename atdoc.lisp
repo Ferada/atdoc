@@ -557,9 +557,11 @@
 	    ((eql c #\@)
 	      (cond
 		((eql (peek-char nil stream nil) #\})
-		  (write-char (read-char stream) out))
+		 (write-char (read-char stream) out))
 		((eql (peek-char nil stream nil) #\@)
-		  (write-char (read-char stream) out))
+		 (write-char (read-char stream) out))
+                ((eql (peek-char nil stream nil) #\])
+                 (write-char (read-char stream) out))
 		(t
 		  (characters handler (get-output-stream-string out))
 		  (let ((name (read-delimited-string stream "[{ :")))
@@ -585,11 +587,15 @@
 	do
 	  (when (null c)
 	    (error "unexpected end of documentation string"))
-	  (when (find c bag)
-	    (unless eat-limit
-	      (unread-char c stream))
-	    (return (get-output-stream-string out)))
-	  (write-char c out))))
+          (when (eql c #\@)
+            (cond ((eql (peek-char nil stream nil) #\])
+                   (write-char (read-char stream nil) out)
+                   (setq c (read-char stream nil)))))
+          (when (find c bag)
+            (unless eat-limit
+              (unread-char c stream))
+            (return (get-output-stream-string out)))
+          (write-char c out))))
 
 (defun parse-docstring-element (stream handler name)
   (let ((close t)
