@@ -28,7 +28,41 @@
 
 (in-package :atdoc)
 
-(defun function-arglist (fun)
+#+sbcl
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require 'sb-introspect))
+
+;; This code has been taken from a docstring extractor for the sbcl manual
+;; to simplify the lambda list of a function for the documentation.
+
+#+sbcl
+(defun lambda-list (doc)
+  (labels ((clean (x &key optional key)
+    (typecase x
+      (atom x)
+      ((cons (member &optional))
+       (cons (car x) (clean (cdr x) :optional t)))
+      ((cons (member &key))
+       (cons (car x) (clean (cdr x) :key t)))
+      ((cons (member &whole &environment))
+       ;; Skip these
+       (clean (cdr x) :optional optional :key key))
+      ((cons cons)
+       (cons
+         (cond (key (if (consp (caar x))
+                        (caaar x)
+                        (caar x)))
+               (optional (caar x))
+               (t (clean (car x))))
+         (clean (cdr x) :key key :optional optional)))
+      (cons
+       (cons (cond ((or key optional) (car x))
+                   (t (clean (car x))))
+             (clean (cdr x) :key key :optional optional))))))
+    (clean (sb-introspect:function-lambda-list doc))))
+
+#-sbcl
+(defun lambda-list (fun)
   (swank::arglist fun))
 
 (defun magic-namestring (file)
@@ -442,7 +476,7 @@
   (cxml:with-element "function-definition"
     (name name "fun")
     (cxml:with-element "lambda-list"
-      (dolist (arg (function-arglist (symbol-function name)))
+      (dolist (arg (lambda-list (symbol-function name)))
 	(cxml:with-element "elt"
 	  (cxml:text (write-to-string arg
 				      :pretty t
@@ -454,7 +488,7 @@
   (cxml:with-element "macro-definition"
     (name name "fun")
     (cxml:with-element "lambda-list"
-      (dolist (arg (function-arglist (macro-function name)))
+      (dolist (arg (lambda-list (macro-function name)))
 	(cxml:with-element "elt"
 	  (cxml:text (write-to-string arg
 				      :pretty t
