@@ -744,7 +744,7 @@
 	  <xsl:value-of select="@name"/>
 	</a>
       </div>
-      <div style="margin-left: 3em">
+      <br/>
 	<xsl:choose>
 	  <xsl:when test="documentation-string//short">
 	    <xsl:apply-templates select="documentation-string//short"/>
@@ -755,7 +755,6 @@
 	    <xsl:apply-templates select="documentation-string"/>
 	  </xsl:otherwise>
 	</xsl:choose>
-      </div>
       <br/>
     </xsl:for-each>
   </xsl:template>
