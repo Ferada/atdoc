@@ -72,11 +72,10 @@ body {
 
 h3 {
   width: 100%;
-/*  width: 90%; */
   color: #000000;
   border-bottom: 1px solid #ff9500;
-   margin-left: -3px;
-   padding-left: 3px;
+  margin-left: -3px;
+  padding-left: 3px;
 }
 
 h4 {
