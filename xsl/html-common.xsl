@@ -71,6 +71,30 @@
     </xsl:call-template>
   </xsl:template>
 
+  <xsl:template match="system-class-definition" mode="symbol-index">
+    <xsl:param name="packagep"/>
+    <xsl:call-template name="index-entry">
+      <xsl:with-param name="packagep" select="$packagep"/>
+      <xsl:with-param name="kind" select="'system class'"/>
+    </xsl:call-template>
+  </xsl:template>
+
+  <xsl:template match="struct-definition" mode="symbol-index">
+    <xsl:param name="packagep"/>
+    <xsl:call-template name="index-entry">
+      <xsl:with-param name="packagep" select="$packagep"/>
+      <xsl:with-param name="kind" select="'struct'"/>
+    </xsl:call-template>
+  </xsl:template>
+
+  <xsl:template match="condition-definition" mode="symbol-index">
+    <xsl:param name="packagep"/>
+    <xsl:call-template name="index-entry">
+      <xsl:with-param name="packagep" select="$packagep"/>
+      <xsl:with-param name="kind" select="'condition'"/>
+    </xsl:call-template>
+  </xsl:template>
+
   <xsl:template match="function-definition" mode="symbol-index">
     <xsl:param name="packagep"/>
     <xsl:call-template name="index-entry">

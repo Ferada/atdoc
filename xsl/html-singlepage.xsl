@@ -2,23 +2,21 @@
 
     This is an alternative to html.xsl for single-page output.
   -->
+
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
 		xmlns:macro="http://lichteblau.com/macro"
 		version="1.0">
+
   <xsl:import href="html-common.tmp"/>
-
   <xsl:include href="base-uri.xsl"/>
-
   <xsl:output method="xml" indent="yes"/>
 
   <xsl:key name="aboutfun" match="aboutfun" use="string(.)"/>
   <xsl:key name="aboutclass" match="aboutclass" use="string(.)"/>
   <xsl:key name="aboutmacro" match="aboutmacro" use="string(.)"/>
-
   <xsl:key name="id"
 	   match="class-definition|function-definition|macro-definition|variable-definition"
 	   use="@id"/>
-
   <xsl:key name="function-by-name"
 	   match="function-definition|macro-definition"
 	   use="@name"/>
@@ -90,17 +88,18 @@
 
   <xsl:template match="arguments">
     <div class="sph3">Arguments:</div>
-    <ul>
+    <div class="indent">
+    <simple-table>
       <xsl:for-each select="arg">
-	<li>
 	  <tt>
 	    <xsl:value-of select="@arg"/>
 	  </tt>
 	  <xsl:text> -- </xsl:text>
 	  <xsl:apply-templates/>
-	</li>
+          <br/>
       </xsl:for-each>
-    </ul>
+    </simple-table>
+    </div>
   </xsl:template>
 
   <xsl:template name="main-documentation-string">
@@ -153,15 +152,20 @@
     </xsl:if>
     <xsl:if test="see-also/other|see-also/auto">
       <div class="sph3">See also:</div>
-      <div>
-	<ul>
+      <div class="indent">
+	<simple-table>
 	  <xsl:for-each select="see-also/other/see|see-also/auto/see">
 	    <xsl:variable name="name" select="text()"/>
 	    <xsl:if test="not(preceding-sibling::see[text() = $name])">
-	      <xsl:apply-templates select="."/>
+              <tt>
+                <a href="#{@id}">
+                  <xsl:apply-templates/>
+                </a>
+              </tt>
+              <br/>
 	    </xsl:if>
 	  </xsl:for-each>
-	</ul>
+	</simple-table>
       </div>
     </xsl:if>
   </xsl:template>

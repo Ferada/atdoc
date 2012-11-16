@@ -11,26 +11,36 @@
     of a few formatting elements like <columns> that are replaced later.
 
   -->
+
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-		xmlns:macro="http://lichteblau.com/macro"
-		version="1.0">
+                xmlns:macro="http://lichteblau.com/macro"
+                version="1.0">
+
   <xsl:import href="html-common.tmp"/>
-
   <xsl:include href="base-uri.xsl"/>
-
   <xsl:output method="xml" indent="yes"/>
 
   <xsl:key name="id"
-	   match="class-definition|function-definition|macro-definition|variable-definition"
-	   use="@id"/>
-
+           match="class-definition|system-class-definition|struct-definition|condition-definition|function-definition|macro-definition|variable-definition"
+           use="@id"/>
   <xsl:key name="function-by-name"
-	   match="function-definition|macro-definition"
-	   use="@name"/>
+           match="function-definition|macro-definition"
+           use="@name"/>
   <xsl:key name="class-by-name"
-	   match="class-definition|type-definition"
-	   use="@name"/>
-  <xsl:key name="variable-by-name" match="variable-definition" use="@name"/>
+           match="class-definition|type-definition"
+           use="@name"/>
+  <xsl:key name="system-class-by-name"
+           match="system-class-definition"
+           use="@name"/>
+  <xsl:key name="struct-by-name"
+           match="struct-definition"
+           use="@name"/>
+  <xsl:key name="condition-by-name"
+           match="condition-definition"
+           use="@name"/>
+  <xsl:key name="variable-by-name"
+           match="variable-definition"
+           use="@name"/>
 
   <xsl:template match="/">
     <pages>
@@ -40,12 +50,11 @@
       <xsl:apply-templates select="documentation/package"/>
       <xsl:apply-templates select="documentation/package/external-symbols/*"/>
       <xsl:if test="documentation/@include-internal-symbols-p">
-	<xsl:apply-templates select="documentation/package/internal-symbols/*"/>
+        <xsl:apply-templates select="documentation/package/internal-symbols/*"/>
       </xsl:if>
       <!-- <xsl:apply-templates select="documentation/package/*/class-definition/direct-slots/*"/> -->
     </pages>
   </xsl:template>
-
 
   <xsl:template name="configuration-attributes">
     <macro:copy-attribute name="logo" path="documentation"/>
@@ -53,59 +62,61 @@
     <macro:copy-attribute name="heading" path="documentation"/>
   </xsl:template>
 
-
   <!--
       page generation templates
     -->
 
   <xsl:template match="documentation">
-    <main-page title="{@index-title}">
+    <main-page title="{@index-title}"
+          author="{/documentation/@author}"
+          author-url="{/documentation/@author-url}"
+          date="{/documentation/@date}"
+          keywords="Lisp, Documentation, Package, {@name}">
       <padded>
-	Index of packages:
+        Index of packages:
       </padded>
-      
       <columns>
-	<column width="60%">
-	  <padded>
-	    <xsl:for-each select="package">
-	      <xsl:variable name="url"
-			    select="concat('pages/', @id, '.html')"/>
-	      <h2 class="page-title">
-		<a href="{$url}">
-		  Package
-		  <xsl:value-of select="@name"/>
-		</a>
-	      </h2>
-	      <div style="left: 100px">
-		<xsl:apply-templates select="documentation-string"/>
-		<div class="indent">
-		  <xsl:if test="sections">
-		    <p><i>About this package:</i></p>
-		    <ul>
-		      <xsl:for-each select="sections/section">
-			<li>
-			  <a href="{$url}#{generate-id()}">
-			    <xsl:value-of select="@section"/>
-			  </a>
-			</li>
-		      </xsl:for-each>
-		    </ul>
-		  </xsl:if>
-		</div>
-	      </div>
-	    </xsl:for-each>
-	  </padded>
-	</column>
-	<column>
-	  <h3><a name="index"></a>Exported Symbol Index</h3>
-	  <simple-table>
-	    <xsl:apply-templates select="package/external-symbols/*"
-				 mode="symbol-index">
-	      <xsl:sort select="@name" data-type="text" order="ascending"/>
-	      <xsl:with-param name="packagep" select="'pages/'"/>
-	    </xsl:apply-templates>
-	  </simple-table>
-	</column>
+        <column width="60%">
+          <padded>
+            <xsl:for-each select="package">
+              <xsl:variable name="url"
+                            select="concat('pages/', @id, '.html')"/>
+              <h2 class="page-title">
+                <a href="{$url}">
+                  Package
+                  <xsl:value-of select="@name"/>
+                </a>
+              </h2>
+              <div style="left: 100px">
+                <xsl:apply-templates select="documentation-string"/>
+                <div class="indent">
+                  <xsl:if test="sections">
+                    <p><i>About this package:</i></p>
+                    <ul>
+                      <xsl:for-each select="sections/section">
+                        <li>
+                          <a href="{$url}#{generate-id()}">
+                            <xsl:value-of select="@section"/>
+                          </a>
+                        </li>
+                      </xsl:for-each>
+                    </ul>
+                  </xsl:if>
+                </div>
+              </div>
+            </xsl:for-each>
+          </padded>
+        </column>
+        <column>
+          <h3><a name="index"></a>Exported Symbol Index</h3>
+          <simple-table>
+            <xsl:apply-templates select="package/external-symbols/*"
+                                 mode="symbol-index">
+              <xsl:sort select="@name" data-type="text" order="ascending"/>
+              <xsl:with-param name="packagep" select="'pages/'"/>
+            </xsl:apply-templates>
+          </simple-table>
+        </column>
       </columns>
     </main-page>
   </xsl:template>
@@ -113,7 +124,11 @@
   <xsl:template match="package">
     <page base="../"
 	  pathname="pages/{@id}.html"
-	  title="Package {@name}">
+	  title="Package {@name}"
+          author="{/documentation/@author}"
+          author-url="{/documentation/@author-url}"
+          date="{/documentation/@date}"
+          keywords="Lisp, Documentation, Package, {@name}">
       <padded>
 	<xsl:if test="count(../package) > 1">
 	  <p class="noindent">
@@ -158,7 +173,11 @@
   <xsl:template match="class-definition">
     <page base="../"
 	  pathname="pages/{@id}.html"
-	  title="Class {@name}">
+	  title="Class {@name}"
+          author="{/documentation/@author}"
+          author-url="{/documentation/@author-url}"
+          date="{/documentation/@date}"
+          keywords="Lisp, Documentation, Class, {@name}">
       <padded>
 	<p class="noindent">
 	  Package:
@@ -215,10 +234,206 @@
     </page>
   </xsl:template>
 
+  <xsl:template match="system-class-definition">
+    <page base="../"
+	  pathname="pages/{@id}.html"
+          author="{/documentation/@author}"
+          author-url="{/documentation/@author-url}"
+          date="{/documentation/@date}"
+          keywords="Lisp, Documentation, System Class, {@name}"
+	  title="Sytem Class {@name}">
+      <padded>
+	<p class="noindent">
+	  Package:
+	  <a href="{../../@id}.html">
+	    <xsl:value-of select="../../@name"/>
+	  </a>
+	</p>
+	<h2 class="page-title">
+	  System Class <xsl:value-of select="@name"/>
+	</h2>
+      </padded>
+      <macro:maybe-columns
+	 test="see-also or key('id', .//superclass/@id)//see-also/slot">
+	<padded>
+	  <h3>Superclasses</h3>
+	  <div class="indent">
+	    <xsl:for-each select="cpl/superclass">
+	      <xsl:call-template name="class-list"/>
+	    </xsl:for-each>
+	  </div>
+	  <h3>Documented Subclasses</h3>
+	  <div class="indent">
+	    <xsl:choose>
+	      <xsl:when test="subclasses/subclass">
+		<xsl:for-each select="subclasses/subclass">
+		  <xsl:sort select="@id" data-type="text" order="ascending"/>
+		  <xsl:call-template name="class-list"/>
+		</xsl:for-each>
+	      </xsl:when>
+	      <xsl:otherwise>
+		None
+	      </xsl:otherwise>
+	    </xsl:choose>
+	  </div>
+	  <xsl:if test="direct-slots">
+	    <h3>Direct Slots</h3>
+	    <div class="indent">
+	      <xsl:choose>
+		<xsl:when test="direct-slots/slot">
+		  <xsl:for-each select="direct-slots/slot">
+		    <xsl:sort select="@id" data-type="text" order="ascending"/>
+		    <xsl:call-template name="slot-list"/>
+		  </xsl:for-each>
+		</xsl:when>
+		<xsl:otherwise>
+		  None
+		</xsl:otherwise>
+	      </xsl:choose>
+	    </div>
+	  </xsl:if>
+	  <xsl:call-template name="main-left"/>
+	</padded>
+      </macro:maybe-columns>
+    </page>
+  </xsl:template>
+
+  <xsl:template match="struct-definition">
+    <page base="../"
+	  pathname="pages/{@id}.html"
+	  title="Struct {@name}"
+          author="{/documentation/@author}"
+          author-url="{/documentation/@author-url}"
+          date="{/documentation/@date}"
+          keywords="Lisp, Documentation, Structure, {@name}">
+      <padded>
+	<p class="noindent">
+	  Package:
+	  <a href="{../../@id}.html">
+	    <xsl:value-of select="../../@name"/>
+	  </a>
+	</p>
+	<h2 class="page-title">
+	  Struct <xsl:value-of select="@name"/>
+	</h2>
+      </padded>
+      <macro:maybe-columns
+	 test="see-also or key('id', .//superclass/@id)//see-also/slot">
+	<padded>
+	  <h3>Superclasses</h3>
+	  <div class="indent">
+	    <xsl:for-each select="cpl/superclass">
+	      <xsl:call-template name="class-list"/>
+	    </xsl:for-each>
+	  </div>
+	  <h3>Documented Subclasses</h3>
+	  <div class="indent">
+	    <xsl:choose>
+	      <xsl:when test="subclasses/subclass">
+		<xsl:for-each select="subclasses/subclass">
+		  <xsl:sort select="@id" data-type="text" order="ascending"/>
+		  <xsl:call-template name="class-list"/>
+		</xsl:for-each>
+	      </xsl:when>
+	      <xsl:otherwise>
+		None
+	      </xsl:otherwise>
+	    </xsl:choose>
+	  </div>
+	  <xsl:if test="direct-slots">
+	    <h3>Direct Slots</h3>
+	    <div class="indent">
+	      <xsl:choose>
+		<xsl:when test="direct-slots/slot">
+		  <xsl:for-each select="direct-slots/slot">
+		    <xsl:sort select="@id" data-type="text" order="ascending"/>
+		    <xsl:call-template name="slot-list"/>
+		  </xsl:for-each>
+		</xsl:when>
+		<xsl:otherwise>
+		  None
+		</xsl:otherwise>
+	      </xsl:choose>
+	    </div>
+	  </xsl:if>
+	  <xsl:call-template name="main-left"/>
+	</padded>
+      </macro:maybe-columns>
+    </page>
+  </xsl:template>
+
+  <xsl:template match="condition-definition">
+    <page base="../"
+	  pathname="pages/{@id}.html"
+	  title="Condition {@name}"
+          author="{/documentation/@author}"
+          author-url="{/documentation/@author-url}"
+          date="{/documentation/@date}"
+          keywords="Lisp, Documentation, Condition Type, {@name}">
+      <padded>
+	<p class="noindent">
+	  Package:
+	  <a href="{../../@id}.html">
+	    <xsl:value-of select="../../@name"/>
+	  </a>
+	</p>
+	<h2 class="page-title">
+	  Condition Type <xsl:value-of select="@name"/>
+	</h2>
+      </padded>
+      <macro:maybe-columns
+	 test="see-also or key('id', .//superclass/@id)//see-also/slot">
+	<padded>
+	  <h3>Superclasses</h3>
+	  <div class="indent">
+	    <xsl:for-each select="cpl/superclass">
+	      <xsl:call-template name="class-list"/>
+	    </xsl:for-each>
+	  </div>
+	  <h3>Documented Subclasses</h3>
+	  <div class="indent">
+	    <xsl:choose>
+	      <xsl:when test="subclasses/subclass">
+		<xsl:for-each select="subclasses/subclass">
+		  <xsl:sort select="@id" data-type="text" order="ascending"/>
+		  <xsl:call-template name="class-list"/>
+		</xsl:for-each>
+	      </xsl:when>
+	      <xsl:otherwise>
+		None
+	      </xsl:otherwise>
+	    </xsl:choose>
+	  </div>
+	  <xsl:if test="direct-slots">
+	    <h3>Direct Slots</h3>
+	    <div class="indent">
+	      <xsl:choose>
+		<xsl:when test="direct-slots/slot">
+		  <xsl:for-each select="direct-slots/slot">
+		    <xsl:sort select="@id" data-type="text" order="ascending"/>
+		    <xsl:call-template name="slot-list"/>
+		  </xsl:for-each>
+		</xsl:when>
+		<xsl:otherwise>
+		  None
+		</xsl:otherwise>
+	      </xsl:choose>
+	    </div>
+	  </xsl:if>
+	  <xsl:call-template name="main-left"/>
+	</padded>
+      </macro:maybe-columns>
+    </page>
+  </xsl:template>
+
   <xsl:template match="function-definition">
     <page base="../"
 	  pathname="pages/{@id}.html"
-	  title="Function {@name}">
+	  title="Function {@name}"
+          author="{/documentation/@author}"
+          author-url="{/documentation/@author-url}"
+          date="{/documentation/@date}"
+          keywords="Lisp, Documentation, Function, {@name}">
       <padded>
 	<p class="noindent">
 	  Package:
@@ -237,6 +452,7 @@
 	  <div class="indent">
 	    <xsl:apply-templates select="lambda-list"/>
 	  </div>
+          <xsl:apply-templates select="syntax"/>
 	  <xsl:apply-templates select="arguments"/>
 	  <xsl:apply-templates select="return"/>
 	  <xsl:call-template name="main-left"/>
@@ -248,7 +464,11 @@
   <xsl:template match="macro-definition">
     <page base="../"
 	  pathname="pages/{@id}.html"
-	  title="Macro {@name}">
+	  title="Macro {@name}"
+          author="{/documentation/@author}"
+          author-url="{/documentation/@author-url}"
+          date="{/documentation/@date}"
+          keywords="Lisp, Documentation, Macro, {@name}">
       <padded>
 	<p class="noindent">
 	  Package:
@@ -267,6 +487,7 @@
 	  <div class="indent">
 	    <xsl:apply-templates select="lambda-list"/>
 	  </div>
+          <xsl:apply-templates select="syntax"/>
 	  <xsl:apply-templates select="arguments"/>
 	  <xsl:apply-templates select="return"/>
 	  <xsl:call-template name="main-left"/>
@@ -278,7 +499,11 @@
   <xsl:template match="type-definition">
     <page base="../"
 	  pathname="pages/{@id}.html"
-	  title="Type {@name}">
+	  title="Type {@name}"
+          author="{/documentation/@author}"
+          author-url="{/documentation/@author-url}"
+          date="{/documentation/@date}"
+          keywords="Lisp, Documentation, Type, {@name}">
       <padded>
 	<p class="noindent">
 	  Package:
@@ -298,7 +523,11 @@
   <xsl:template match="variable-definition">
     <page base="../"
 	  pathname="pages/{@id}.html"
-	  title="Variable {@name}">
+	  title="Variable {@name}"
+          author="{/documentation/@author}"
+          author-url="{/documentation/@author-url}"
+          date="{/documentation/@date}"
+          keywords="Lisp, Documentation, Variable, {@name}">
       <padded>
 	<p class="noindent">
 	  Package:
@@ -320,6 +549,7 @@
       Other templates
     -->
 
+<!--
   <xsl:template match="arguments">
     <h3>Arguments</h3>
     <div class="indent">
@@ -329,24 +559,57 @@
 	    <tt>
 	      <xsl:value-of select="@arg"/>
 	    </tt>
-	    <xsl:text> -- </xsl:text>
+	    <xsl:text>  </xsl:text>
 	    <xsl:apply-templates/>
 	  </li>
 	</xsl:for-each>
       </ul>
     </div>
   </xsl:template>
+-->
+
+  <xsl:template match="syntax">
+    <h3>Syntax</h3>
+    <div class="indent">
+      <simple-table>
+	<xsl:for-each select="syn">
+	    <tt>
+	      <xsl:value-of select="@syn"/>
+              <xsl:text> ::= </xsl:text>
+              <xsl:apply-templates/>
+            </tt>
+            <br/>
+	</xsl:for-each>
+      </simple-table>
+    </div>
+  </xsl:template>
+
+  <xsl:template match="arguments">
+    <h3>Arguments</h3>
+    <div class="indent">
+      <simple-table>
+	<xsl:for-each select="arg">
+	    <tt>
+	      <xsl:value-of select="@arg"/>
+	    </tt>
+	    <xsl:text> -- </xsl:text>
+            <xsl:apply-templates/>
+            <br/>
+	</xsl:for-each>
+      </simple-table>
+    </div>
+  </xsl:template>
 
   <xsl:template name="main-left">
     <xsl:choose>
       <xsl:when test="documentation-string">
-	<h3>Details<a name="details"/></h3>
-	<xsl:apply-templates select="documentation-string"/>
+        <h3>Details</h3>
+        <xsl:apply-templates select="documentation-string"/>
       </xsl:when>
       <xsl:otherwise>
-	<p style="color: red; font-weight: bold">
-	  No documentation string.  Possibly unimplemented or incomplete.
-	</p>
+        <p style="color: red; font-weight: bold">
+          No documentation string.  Possibly unimplemented or incomplete.
+        </p>
       </xsl:otherwise>
     </xsl:choose>
     <xsl:apply-templates select="implementation-note"/>
@@ -430,7 +693,7 @@
 	  <xsl:text>::</xsl:text>
 	  <xsl:value-of select="@name"/>
 	</tt>
-      </xsl:when>	  
+      </xsl:when>
       <xsl:otherwise>
 	<tt style="color: #777777">
 	  <xsl:value-of select="@package"/>
@@ -526,6 +789,12 @@
     </tt>
   </xsl:template>
 
+  <xsl:template match="file">
+    <tt><em>
+      <xsl:apply-templates/>
+    </em></tt>
+  </xsl:template>
+
   <xsl:template match="pre">
     <pre>
       <xsl:apply-templates/>
@@ -571,6 +840,22 @@
   </xsl:template>
 
   <xsl:template match="variable">
+    <a href="{@id}.html">
+      <tt>
+	<xsl:apply-templates/>
+      </tt>
+    </a>
+  </xsl:template>
+
+  <xsl:template match="condition">
+    <a href="{@id}.html">
+      <tt>
+	<xsl:apply-templates/>
+      </tt>
+    </a>
+  </xsl:template>
+
+  <xsl:template match="struct">
     <a href="{@id}.html">
       <tt>
 	<xsl:apply-templates/>
@@ -720,18 +1005,20 @@
 	  <xsl:value-of select="@name"/>
 	</a>
       </div>
-      <div style="margin-left: 3em">
+      <br/>
 	<xsl:choose>
 	  <xsl:when test="documentation-string//short">
+            <div class="indent">
 	    <xsl:apply-templates select="documentation-string//short"/>
 	    <xsl:text> </xsl:text>
 	    <a href="{@id}.html#details">...</a>
+            </div>
 	  </xsl:when>
 	  <xsl:otherwise>
 	    <xsl:apply-templates select="documentation-string"/>
 	  </xsl:otherwise>
 	</xsl:choose>
-      </div>
+
       <br/>
     </xsl:for-each>
   </xsl:template>
@@ -763,7 +1050,7 @@
     <xsl:if test="not(documentation-string)">
       <xsl:text>&#160;</xsl:text>
       <span style="color: red">
-	(undocumented)
+        (undocumented)
       </span>
     </xsl:if>
   </xsl:template>

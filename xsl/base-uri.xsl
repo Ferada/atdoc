@@ -1,6 +1,6 @@
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-		xmlns:atdoc="http://www.lichteblau.com/atdoc/"
-		version="1.0">
+                xmlns:atdoc="http://www.lichteblau.com/atdoc/"
+                version="1.0">
 
   <xsl:template name="copy-base-uri">
     <xsl:attribute name="xml:base">

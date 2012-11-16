@@ -10,9 +10,9 @@
       <cpl>...</cpl>
 
       <documentation-string>
-	The foo class.
-	<see-slot id="foo">See also the foo function.</see-slot>
-	Beware bugs.
+        The foo class.
+        <see-slot id="foo">See also the foo function.</see-slot>
+        Beware bugs.
       </documentation-string>
     </class-definition>
 
@@ -22,14 +22,14 @@
       <cpl>...</cpl>
 
       <see-also>
-	<slot>
-	  <see id="foo">See also the foo function.</see>
-	</slot>
+        <slot>
+          <see id="foo">See also the foo function.</see>
+        </slot>
       </see-also>
 
       <documentation-string>
-	The foo class.
-	Beware bugs.
+        The foo class.
+        Beware bugs.
       </documentation-string>
     </class-definition>
 
@@ -37,7 +37,6 @@
 
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
   <xsl:include href="base-uri.xsl"/>
-
   <xsl:output method="xml" indent="yes"/>
 
   <xsl:template match="@*|node()">
@@ -57,6 +56,7 @@
   <xsl:template match="see-slot"/>
   <xsl:template match="see-constructor"/>
   <xsl:template match="see-condition"/>
+  <xsl:template match="syn"/>
   <xsl:template match="arg"/>
   <xsl:template match="return"/>
   <xsl:template match="implementation-note"/>
@@ -89,19 +89,22 @@
     </see>
   </xsl:template>
 
-  <xsl:template mode="auto-see" match="class|fun|variable">
+  <xsl:template mode="auto-see" match="class|fun|variable|type|struct|condition">
     <see>
       <xsl:apply-templates select="@*"/>
       <xsl:apply-templates>
-	<xsl:sort select="@name" data-type="text" order="ascending"/>
+      <xsl:sort select="@name" data-type="text" order="ascending"/>
       </xsl:apply-templates>
     </see>
   </xsl:template>
 
   <xsl:template match="class-definition
-		       |function-definition
+                       |system-class-definition
+                       |struct-definition
+                       |condition-definition
+                       |function-definition
                        |type-definition
-		       |variable-definition">
+                       |variable-definition">
     <xsl:if test="not(.//unexport)">
       <xsl:copy>
 	<xsl:apply-templates select="@*|node()"/>
@@ -110,6 +113,12 @@
   </xsl:template>
 
   <xsl:template match="documentation-string">
+    <xsl:if test=".//syn">
+      <syntax>
+	<xsl:apply-templates mode="extract" select=".//syn"/>
+      </syntax>
+    </xsl:if>
+
     <xsl:if test=".//arg">
       <arguments>
 	<xsl:apply-templates mode="extract" select=".//arg"/>
@@ -123,13 +132,16 @@
     </xsl:if>
 
     <xsl:if test=".//see or .//see-slot or .//see-constructor
-		  or .//class or .//fun or .//variable or .//slot
-		  or .//see-condition">
+                         or .//class or .//fun or .//variable or .//slot
+                         or .//type
+                         or .//struct
+                         or .//condition
+                         or .//see-condition">
       <see-also>
-	<xsl:if test=".//class or .//fun or .//variable">
+	<xsl:if test=".//class or .//fun or .//variable or .//type or .//struct or .//condition">
 	  <auto>
 	    <xsl:apply-templates mode="auto-see"
-				 select=".//class|.//fun|.//variable"/>
+				 select=".//class|.//fun|.//variable|.//type|.//struct|.//condition"/>
 	  </auto>
 	</xsl:if>
 
@@ -150,11 +162,12 @@
 	    <xsl:apply-templates mode="extract" select=".//see-constructor"/>
 	  </constructor>
 	</xsl:if>
-	<xsl:if test=".//see-condition">
-	  <condition>
-	    <xsl:apply-templates mode="extract" select=".//see-condition"/>
-	  </condition>
-	</xsl:if>
+
+    <xsl:if test=".//see-condition">
+      <condition>
+        <xsl:apply-templates mode="extract" select=".//see-condition"/>
+      </condition>
+    </xsl:if>
       </see-also>
     </xsl:if>
 
