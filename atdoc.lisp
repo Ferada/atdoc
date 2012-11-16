@@ -1,6 +1,7 @@
 ;;; -*- show-trailing-whitespace: t; indent-tabs: nil -*-
 
-;;; Copyright (c) 2006,2007,2008 David Lichteblau. All rights reserved.
+;;; Copyright (c) 2006, 2007, 2008 David Lichteblau. All rights reserved.
+;;; Copyright (c) 2012 Dieter Kaiser
 
 ;;; Redistribution and use in source and binary forms, with or without
 ;;; modification, are permitted provided that the following conditions
@@ -25,6 +26,7 @@
 ;;; WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;; ----------------------------------------------------------------------------
 
 (in-package :atdoc)
 
@@ -62,9 +64,9 @@
                (t (clean (car x))))
          (clean (cdr x) :key key :optional optional)))
       (cons
-       (cons (cond ((or key optional) (car x))
-                   (t (clean (car x))))
-             (clean (cdr x) :key key :optional optional))))))
+        (cons (cond ((or key optional) (car x))
+                    (t (clean (car x))))
+              (clean (cdr x) :key key :optional optional))))))
     (clean (sb-introspect:function-lambda-list doc))))
 
 #-sbcl
@@ -75,8 +77,8 @@
   (let ((atdoc-directory (asdf:component-pathname (asdf:find-system :atdoc))))
     (unless (and (stringp file) (char= (char file 0) #\.))
       (let* ((kind (pathname-type file))
-	     (base (merge-pathnames (format nil "~A/" kind) atdoc-directory)))
-	(setf file (merge-pathnames file base))))
+             (base (merge-pathnames (format nil "~A/" kind) atdoc-directory)))
+        (setf file (merge-pathnames file base))))
     (namestring file)))
 
 #+(or sbcl lispworks)
@@ -84,19 +86,18 @@
   ;; fixme: escape the namestrings properly, or use a function calling
   ;; exec rather system.
   (let* ((asdf::*verbose-out* (make-string-output-stream))
-	 (code (asdf:run-shell-command
-		"cd ~S && ~A~{ ~S~}~@[ >~S~]"
-		directory
-		command
-		args
-		output))
-	 (output (get-output-stream-string asdf::*verbose-out*)))
+         (code (asdf:run-shell-command "cd ~S && ~A~{ ~S~}~@[ >~S~]"
+                                       directory
+                                       command
+                                       args
+                                       output))
+         (output (get-output-stream-string asdf::*verbose-out*)))
     (unless (zerop code)
       (print output)
       (error "running ~A failed with code ~A [~%~A~%]"
-	     command
-	     code
-	     output))
+             command
+             code
+             output))
     output))
 
 #+allegro
@@ -105,16 +106,15 @@
   ;; exec rather system.
   (multiple-value-bind (stdout stderr exitcode)
       (excl.osi:command-output
-       (format nil "~A~{ ~S~}~@[ >~S~]"
-	       command
-	       args
-	       output)
-       :directory directory
-       :whole T)
+          (format nil "~A~{ ~S~}~@[ >~S~]" command args output)
+          :directory directory
+          :whole t)
     (declare (ignore stdout))
     (unless (zerop exitcode)
       (error "running ~A failed with code ~A [~%~A~%]"
-	     command exitcode stderr))))
+             command
+             exitcode
+             stderr))))
 
 #||
 ;; does not work as-is, but could be made to work if the caller
@@ -146,53 +146,52 @@
   (let ((dependencies '()))
     (klacks:with-open-source (source (cxml:make-source (pathname namestring)))
       (loop
-	 for event = (klacks:peek-next source)
-	 while event
-	 do
-	 (when (and (eq event :start-element)
-		    (equal (klacks:current-uri source)
-			   "http://www.w3.org/1999/XSL/Transform")
-		    (or (equal (klacks:current-lname source) "import")
-			(equal (klacks:current-lname source) "include")))
-	   (push (make-pathname
-		  :type "xsl"
-		  :defaults (merge-pathnames
-			     (klacks:get-attribute source "href")
-			     namestring))
-		 dependencies))))
+        for event = (klacks:peek-next source)
+        while event
+        do
+        (when (and (eq event :start-element)
+                   (equal (klacks:current-uri source)
+                          "http://www.w3.org/1999/XSL/Transform")
+                   (or (equal (klacks:current-lname source) "import")
+                       (equal (klacks:current-lname source) "include")))
+          (push (make-pathname :type "xsl"
+                               :defaults (merge-pathnames
+                               (klacks:get-attribute source "href")
+                               namestring))
+                dependencies))))
     dependencies))
 
 (defun find-stylesheet (namestring)
   (let ((cache-entry (gethash namestring *stylesheets*)))
     (unless (and cache-entry
-		 (every (lambda (dependency)
-			  (eql (file-write-date (car dependency))
-			       (cdr dependency)))
-			(cdr cache-entry)))
+                 (every (lambda (dependency)
+                          (eql (file-write-date (car dependency))
+                          (cdr dependency)))
+                        (cdr cache-entry)))
       (if cache-entry
-	  (format t "~&Stylesheet has changed, reloading: ~A~%" namestring)
-	  (format t "~&Loading stylesheet: ~A~%" namestring))
+          (format t "~&Stylesheet has changed, reloading: ~A~%" namestring)
+          (format t "~&Loading stylesheet: ~A~%" namestring))
       (let ((dependencies (grovel-stylesheet-dependencies namestring)))
-	(dolist (dependency dependencies)
-	  (with-open-file (s (make-pathname :type "tmp" :defaults dependency)
-			     :direction :output
-			     :if-exists :rename-and-delete)
-	    (xuriella:apply-stylesheet
-	     (pathname (magic-namestring "macros.xsl"))
-	     dependency
-	     :output s)))
-	(setf cache-entry
-	      (cons (xuriella:parse-stylesheet
-		     (xuriella:apply-stylesheet
-		      (pathname (magic-namestring "macros.xsl"))
-		      (pathname namestring)))
-		    (mapcar (lambda (file)
-			      (cons file (file-write-date file)))
-			    (list* namestring
-				   (magic-namestring "macros.xsl")
-				   dependencies))))
-	(setf (gethash namestring *stylesheets*)
-	      cache-entry)))
+        (dolist (dependency dependencies)
+          (with-open-file (s (make-pathname :type "tmp" :defaults dependency)
+                             :direction :output
+                             :if-exists :rename-and-delete)
+            (xuriella:apply-stylesheet
+                (pathname (magic-namestring "macros.xsl"))
+                dependency
+                :output s)))
+        (setf cache-entry
+              (cons (xuriella:parse-stylesheet
+                      (xuriella:apply-stylesheet
+                          (pathname (magic-namestring "macros.xsl"))
+                          (pathname namestring)))
+                    (mapcar (lambda (file)
+                              (cons file (file-write-date file)))
+                            (list* namestring
+                                   (magic-namestring "macros.xsl")
+                                   dependencies))))
+        (setf (gethash namestring *stylesheets*)
+              cache-entry)))
     (car cache-entry)))
 
 (defun apply-stylesheet-chain (input stylesheets output)
@@ -201,28 +200,27 @@
      for (current-stylesheet . rest) on stylesheets
      for output-designator = (if rest nil (pathname (magic-namestring output)))
      for result = (xuriella:apply-stylesheet
-		   (find-stylesheet (magic-namestring current-stylesheet))
-		   input-designator
-		   :output output-designator)))
+         (find-stylesheet (magic-namestring current-stylesheet))
+         input-designator
+         :output output-designator)))
 
 (defun copy-file (a b &key (if-exists :error))
   (with-open-file (in a :element-type '(unsigned-byte 8))
-    (with-open-file (out b
-			 :direction :output
-			 :if-exists if-exists
-			 :element-type '(unsigned-byte 8))
+    (with-open-file (out b :direction :output
+                           :if-exists if-exists
+                           :element-type '(unsigned-byte 8))
       (let ((buf (make-array #x2000 :element-type '(unsigned-byte 8))))
-	(loop
-	   for pos = (read-sequence buf in)
-	   until (zerop pos)
-	   do (write-sequence buf out :end pos))))))
+        (loop
+          for pos = (read-sequence buf in)
+          until (zerop pos)
+          do (write-sequence buf out :end pos))))))
 
 (defvar *include-slot-definitions-p* nil)
 
 (defun extract-documentation (packages directory
-			      &rest keys
-			      &key include-slot-definitions-p
-			      &allow-other-keys)
+                                       &rest keys
+                                       &key include-slot-definitions-p
+                                       &allow-other-keys)
   "@arg[packages]{List of package designators.
      Documentation will be generated for these packages.}
    @arg[directory]{A pathname specifying a directory.
@@ -240,20 +238,21 @@
   (setf packages (mapcar #'find-package packages))
   (let ((*include-slot-definitions-p* include-slot-definitions-p))
     (with-open-file (s (merge-pathnames ".atdoc.xml" directory)
-		       :element-type '(unsigned-byte 8)
-		       :direction :output
-		       :if-does-not-exist :create
-		       :if-exists :rename-and-delete)
+                       :element-type '(unsigned-byte 8)
+                       :direction :output
+                       :if-does-not-exist :create
+                       :if-exists :rename-and-delete)
       (cxml:with-xml-output (cxml:make-octet-stream-sink s)
-	(cxml:with-element "documentation"
-	  (loop for (key value) on keys :by #'cddr do
-	       (when value
-		 (cxml:attribute
-		     (format nil "~A"	;argh... string ./. simple-string
-			     (string-downcase key))
-		   value)))
-	  (dolist (package packages)
-	    (emit-package package packages)))))))
+        (cxml:with-element "documentation"
+          (loop
+            for (key value) on keys :by #'cddr do
+            (when value
+              (cxml:attribute
+                (format nil "~A"   ;argh... string ./. simple-string
+                        (string-downcase key))
+                value)))
+          (dolist (package packages)
+            (emit-package package packages)))))))
 
 (defun generate-documentation (&rest args)
   "A deprecated alias for @fun{generate-html-documentation}."
@@ -322,16 +321,16 @@
                          :date date)
   (let ((*default-pathname-defaults* (merge-pathnames directory)))
     (copy-file (magic-namestring css) "index.css"
-	       :if-exists :rename-and-delete)
+               :if-exists :rename-and-delete)
     (copy-file (magic-namestring "header.gif") "header.gif"
-	       :if-exists :rename-and-delete)
+               :if-exists :rename-and-delete)
     (apply-stylesheet-chain ".atdoc.xml"
-			    (list "cleanup.xsl"
-				  (if single-page-p
-				      "html-singlepage.xsl"
-				      "html.xsl")
-				  "paginate.xsl")
-			    (merge-pathnames "index.html"))))
+                (list "cleanup.xsl"
+                  (if single-page-p
+                      "html-singlepage.xsl"
+                      "html.xsl")
+                  "paginate.xsl")
+                (merge-pathnames "index.html"))))
 
 (defun generate-latex-documentation
     (packages directory
@@ -357,37 +356,37 @@
   (setf include-slot-definitions-p (and include-slot-definitions-p "yes"))
   (format t "Extracting docstrings...~%")
   (extract-documentation packages
-			 directory
-			 :title title
-			 :include-slot-definitions-p include-slot-definitions-p)
+                         directory
+                         :title title
+                         :include-slot-definitions-p include-slot-definitions-p)
   (format t "Generating .tex...~%")
   (let ((*default-pathname-defaults* (merge-pathnames directory)))
-    (copy-file (magic-namestring "defun.tex") (merge-pathnames "defun.tex")
-	       :if-exists :rename-and-delete)
+    (copy-file (magic-namestring "defun.tex")
+               (merge-pathnames "defun.tex")
+               :if-exists :rename-and-delete)
     (apply-stylesheet-chain ".atdoc.xml"
-			    (list "cleanup.xsl"
-				  "latex.xsl")
-			    (merge-pathnames "documentation.tex"))
+                (list "cleanup.xsl"
+                      "latex.xsl")
+                (merge-pathnames "documentation.tex"))
     (let ((i 0))
       (labels ((latex1 ()
-		 (format t "Running pdflatex (~D)...~%" (incf i))
-		 (run-shell-command (magic-namestring directory)
-				    nil
-				    run-tex-p
-				    "documentation"))
-	       (latex ()
-		 (loop while
-		      (search "Rerun to get cross-references right"
-			      (latex1)))))
-	(when run-tex-p
-	  (latex)
-	  (format t "Running makeindex...~%")
-	  (run-shell-command (magic-namestring directory)
-			     nil
-			     "makeindex"
-			     "documentation.idx")
-	  (latex)))
-      (merge-pathnames "documentation.pdf"))))
+                 (format t "Running pdflatex (~D)...~%" (incf i))
+                 (run-shell-command (magic-namestring directory)
+                                    nil
+                                    run-tex-p
+                                    "documentation"))
+               (latex ()
+                 (loop while
+                   (search "Rerun to get cross-references right" (latex1)))))
+        (when run-tex-p
+          (latex)
+          (format t "Running makeindex...~%")
+          (run-shell-command (magic-namestring directory)
+                             nil
+                             "makeindex"
+                             "documentation.idx")
+          (latex)))
+    (merge-pathnames "documentation.pdf"))))
 
 (xpath-sys:define-extension :atdoc "http://www.lichteblau.com/atdoc/")
 
@@ -396,11 +395,11 @@
   ;; \ -> $\backslash$
   ;; & -> ???
   (setf x (cl-ppcre:regex-replace-all "([#$~_^{}%])"
-				      (xpath:string-value x)
-				      "\\\\\\1"))
+                                      (xpath:string-value x)
+                                      "\\\\\\1"))
   (setf x (cl-ppcre:regex-replace-all "&"
-				      (xpath:string-value x)
-				      "$\\\\&$")))
+                                      (xpath:string-value x)
+                                      "$\\\\&$")))
 
 (xpath-sys:define-xpath-function/eager :atdoc :base-uri (x)
   (xpath-protocol:base-uri (xpath:first-node x)))
@@ -415,14 +414,14 @@
 
 (defun munge-name (name kind)
   (format nil "~(~A~)_~A_~(~A~)"
-	  (package-name (symbol-package name))
-	  kind
-	  (cl-ppcre:regex-replace-all "[/\*%<>]" (symbol-name name) "_")))
+          (package-name (symbol-package name))
+          kind
+          (cl-ppcre:regex-replace-all "[/\*%<>]" (symbol-name name) "_")))
 
 (defun unexported-name (name)
   (cxml:attribute "name" (string-downcase (symbol-name name)))
   (cxml:attribute "package"
-		  (string-downcase (package-name (symbol-package name)))))
+                  (string-downcase (package-name (symbol-package name)))))
 
 ;;; ----------------------------------------------------------------------------
 
@@ -440,102 +439,57 @@
       (unexported-name name)))
 
 ;;; ----------------------------------------------------------------------------
-#+nil
-(defun emit-package (package other-packages)
-  (flet ((handle-symbol (sym)
-	   (when (boundp sym)
-	     (emit-variable sym))
-	   (when (fboundp sym)
-	     (if (macro-function sym)
-		 (emit-macro sym)
-		 (emit-function sym)))
-	   (when (and (find-class sym nil)
-                  (typep (find-class sym nil) 'standard-class))
-	     (emit-class (find-class sym) other-packages))
-	   (when (and (find-class sym nil)
-                  (typep (find-class sym nil) 'structure-class))
-	     (emit-struct (find-class sym) other-packages))
-       (when (find-class sym nil)
-         (emit-condition (find-class sym) other-packages))       
-	   (when (and (documentation sym 'type)
-		      (not (find-class sym nil)))
-	     (emit-type sym)))
-	 (internalp (sym)
-	   "Check whether SYM is internal to some package, but not external
-            to any other documented package."
-	   (and (loop
-		   for package in (cons package other-packages)
-		   thereis
-		   (eq (nth-value 1 (find-symbol (symbol-name sym) package))
-		       :internal))
-		(loop
-		   for package in (cons package other-packages)
-		   never
-		   (eq (nth-value 1 (find-symbol (symbol-name sym) package))
-		       :external)))))
-    (cxml:with-element "package"
-      (cxml:attribute "name" (string-downcase (package-name package)))
-      (cxml:attribute "id" (string-downcase (package-name package)))
-      (emit-docstring package (or (documentation package t)
-				  "no documentation string found"))
-      (cxml:with-element "external-symbols"
-	(do-external-symbols (sym package)
-	  (handle-symbol sym)))
-      (cxml:with-element "internal-symbols"
-	(do-symbols (sym package)
-	  (when (internalp sym)
-	    (handle-symbol sym)))))))
-
 
 (defun handle-symbol (sym package other-packages)
   (declare (ignore package))
-	   (when (boundp sym)
-	     (emit-variable sym))
-	   (when (fboundp sym)
-	     (if (macro-function sym)
-		 (emit-macro sym)
-		 (emit-function sym)))
-	   (when (find-class sym nil)
-             (cond ((typep (find-class sym nil) 'standard-class)
-                    (emit-class (find-class sym) other-packages))
-                   ((typep (find-class sym nil) 'structure-class)
-                    (emit-struct (find-class sym) other-packages))
-                   ((typep (find-class sym nil) 'built-in-class)
-                    (emit-system-class (find-class sym) other-packages))
-                   (t
-                    (emit-condition (find-class sym nil) other-packages))))
-
-	   (when (and (documentation sym 'type)
-		      (not (find-class sym nil)))
-	     (emit-type sym)))
+  (when (boundp sym)
+    (emit-variable sym))
+  (when (fboundp sym)
+    (if (macro-function sym)
+    (emit-macro sym)
+    (emit-function sym)))
+  (when (find-class sym nil)
+        (cond ((typep (find-class sym nil) 'standard-class)
+               (emit-class (find-class sym) other-packages))
+              ((typep (find-class sym nil) 'structure-class)
+               (emit-struct (find-class sym) other-packages))
+              ((typep (find-class sym nil) 'built-in-class)
+               (emit-system-class (find-class sym) other-packages))
+              (t
+               (emit-condition (find-class sym nil) other-packages))))
+  (when (and (documentation sym 'type)
+             (not (find-class sym nil)))
+    (emit-type sym)))
 
 (defun internalp (sym package other-packages)
-	   "Check whether SYM is internal to some package, but not external
-            to any other documented package."
-	   (and (loop
-		   for package in (cons package other-packages)
-		   thereis
-		   (eq (nth-value 1 (find-symbol (symbol-name sym) package))
-		       :internal))
-		(loop
-		   for package in (cons package other-packages)
-		   never
-		   (eq (nth-value 1 (find-symbol (symbol-name sym) package))
-		       :external))))
+  "Check whether SYM is internal to some package, but not external
+   to any other documented package."
+  (and (loop
+         for package in (cons package other-packages)
+         thereis
+         (eq (nth-value 1 (find-symbol (symbol-name sym) package))
+             :internal))
+       (loop
+         for package in (cons package other-packages)
+         never
+         (eq (nth-value 1 (find-symbol (symbol-name sym) package))
+             :external))))
+
+;;; ----------------------------------------------------------------------------
 
 (defun emit-package (package other-packages)
-    (cxml:with-element "package"
-      (cxml:attribute "name" (string-downcase (package-name package)))
-      (cxml:attribute "id" (string-downcase (package-name package)))
-      (emit-docstring package (or (documentation package t)
-				  "no documentation string found"))
-      (cxml:with-element "external-symbols"
-	(do-external-symbols (sym package)
-	  (handle-symbol sym package other-packages)))
-      (cxml:with-element "internal-symbols"
-	(do-symbols (sym package)
-	  (when (internalp sym package other-packages)
-	    (handle-symbol sym package other-packages))))))
+  (cxml:with-element "package"
+    (cxml:attribute "name" (string-downcase (package-name package)))
+    (cxml:attribute "id" (string-downcase (package-name package)))
+    (emit-docstring package (or (documentation package t)
+                                "no documentation string found"))
+    (cxml:with-element "external-symbols"
+      (do-external-symbols (sym package)
+        (handle-symbol sym package other-packages)))
+    (cxml:with-element "internal-symbols"
+      (do-symbols (sym package)
+        (when (internalp sym package other-packages)
+          (handle-symbol sym package other-packages))))))
 
 (defun emit-variable (name)
   (cxml:with-element "variable-definition"
@@ -553,11 +507,11 @@
     (name name "fun")
     (cxml:with-element "lambda-list"
       (dolist (arg (lambda-list (symbol-function name)))
-	(cxml:with-element "elt"
-	  (cxml:text (write-to-string arg
-				      :pretty t
-				      :escape nil
-				      :case :downcase)))))
+        (cxml:with-element "elt"
+          (cxml:text (write-to-string arg
+                                      :pretty t
+                                      :escape nil
+                                      :case :downcase)))))
     (emit-docstring name (documentation name 'function))))
 
 (defun emit-macro (name)
@@ -565,11 +519,11 @@
     (name name "fun")
     (cxml:with-element "lambda-list"
       (dolist (arg (lambda-list (macro-function name)))
-	(cxml:with-element "elt"
-	  (cxml:text (write-to-string arg
-				      :pretty t
-				      :escape nil
-				      :case :downcase)))))
+        (cxml:with-element "elt"
+          (cxml:text (write-to-string arg
+                                      :pretty t
+                                      :escape nil
+                                      :case :downcase)))))
     (emit-docstring name (documentation name 'function))))
 
 (defun emit-slot (slot-def)
@@ -582,51 +536,51 @@
       (format nil "~A" (closer-mop:slot-definition-type slot-def)))
     (cxml:with-element "initargs"
       (dolist (ia (closer-mop:slot-definition-initargs slot-def))
-	(cxml:with-element "initarg" (name ia "symbol"))))
+        (cxml:with-element "initarg" (name ia "symbol"))))
     (cxml:with-element "readers"
       (dolist (reader (closer-mop:slot-definition-readers slot-def))
-	(cxml:with-element "reader" (name reader "symbol"))))
+        (cxml:with-element "reader" (name reader "symbol"))))
     ;; FIXME: writer methods will be of the form (setf name) which breaks in
     ;;        munge-name
     ;;     (cxml:with-element "writers"
     ;;       (dolist (writer (closer-mop:slot-definition-writers slot-def))
-    ;; 	(cxml:attribute "writer" (munge-name writer "writer"))))
+    ;;  (cxml:attribute "writer" (munge-name writer "writer"))))
     (emit-docstring (closer-mop:slot-definition-name slot-def)
-		    (documentation slot-def T))))
+                    (documentation slot-def t))))
 
 (defun emit-class (class other-packages)
   (cxml:with-element "class-definition"
     (name (class-name class) "class")
     #+sbcl (sb-pcl:finalize-inheritance class)
     #+allegro (unless (typep class 'structure-class)
-		(aclmop:finalize-inheritance class))
+        (aclmop:finalize-inheritance class))
     #+lispworks (clos:finalize-inheritance class)
     (cxml:with-element "cpl"
       (dolist (super (cdr #+sbcl (sb-pcl:class-precedence-list class)
-			  #+allegro (aclmop:class-precedence-list class)
+                          #+allegro (aclmop:class-precedence-list class)
                           #+lispworks (hcl:class-precedence-list class)))
-	(cxml:with-element "superclass"
-	  (random-name (class-name super) other-packages "class"))))
+        (cxml:with-element "superclass"
+          (random-name (class-name super) other-packages "class"))))
     (cxml:with-element "subclasses"
       (labels ((recurse (c)
-		 (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
-			      #+allegro (aclmop:class-direct-subclasses c)
+                 (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
+                              #+allegro (aclmop:class-direct-subclasses c)
                               #+lispworks (hcl:class-direct-subclasses c))
-		   (if (good-symbol-p (class-name sub)
+                   (if (good-symbol-p (class-name sub)
                                       (cons (find-package :common-lisp)
                                             other-packages))
-		       (cxml:with-element "subclass"
-			 (random-name (class-name sub)
+                       (cxml:with-element "subclass"
+                         (random-name (class-name sub)
                                       (cons (find-package :common-lisp)
                                             other-packages)
                                       "class"))
-		       (recurse sub)))))
-	(recurse class)))
+                       (recurse sub)))))
+        (recurse class)))
     (when (and *include-slot-definitions-p*
-	       (not (typep class 'structure-class)))
+               (not (typep class 'structure-class)))
       (cxml:with-element "direct-slots"
-	(dolist (slot (closer-mop:class-direct-slots class))
-	  (emit-slot slot))))
+        (dolist (slot (closer-mop:class-direct-slots class))
+          (emit-slot slot))))
     (emit-docstring (class-name class) (documentation class t))))
 
 (defun emit-system-class (class other-packages)
@@ -634,25 +588,25 @@
     (name (class-name class) "system-class")
     (cxml:with-element "cpl"
       (dolist (super (cdr #+sbcl (sb-pcl:class-precedence-list class)
-			  #+allegro (aclmop:class-precedence-list class)
+                          #+allegro (aclmop:class-precedence-list class)
                           #+lispworks (hcl:class-precedence-list class)))
-	(cxml:with-element "superclass"
-	  (random-name (class-name super) other-packages "class"))))
+        (cxml:with-element "superclass"
+          (random-name (class-name super) other-packages "class"))))
     (cxml:with-element "subclasses"
       (labels ((recurse (c)
-		 (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
-			      #+allegro (aclmop:class-direct-subclasses c)
+                 (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
+                              #+allegro (aclmop:class-direct-subclasses c)
                               #+lispworks (hcl:class-direct-subclasses c))
-		   (if (good-symbol-p (class-name sub) other-packages)
-		       (cxml:with-element "subclass"
-			 (random-name (class-name sub) other-packages "class"))
-		       (recurse sub)))))
-	(recurse class)))
+                   (if (good-symbol-p (class-name sub) other-packages)
+                       (cxml:with-element "subclass"
+                         (random-name (class-name sub) other-packages "class"))
+                       (recurse sub)))))
+        (recurse class)))
     (when (and *include-slot-definitions-p*
-	       (not (typep class 'structure-class)))
+               (not (typep class 'structure-class)))
       (cxml:with-element "direct-slots"
-	(dolist (slot (closer-mop:class-direct-slots class))
-	  (emit-slot slot))))
+        (dolist (slot (closer-mop:class-direct-slots class))
+          (emit-slot slot))))
     (emit-docstring (class-name class)
                     (documentation (class-name class) 'type))))
 
@@ -661,29 +615,29 @@
     (name (class-name class) "struct")
     #+sbcl (sb-pcl:finalize-inheritance class)
     #+allegro (unless (typep class 'structure-class)
-		(aclmop:finalize-inheritance class))
+                (aclmop:finalize-inheritance class))
     #+lispworks (clos:finalize-inheritance class)
     (cxml:with-element "cpl"
       (dolist (super (cdr #+sbcl (sb-pcl:class-precedence-list class)
-			  #+allegro (aclmop:class-precedence-list class)
+                          #+allegro (aclmop:class-precedence-list class)
                           #+lispworks (hcl:class-precedence-list class)))
-	(cxml:with-element "superclass"
-	  (random-name (class-name super) other-packages "class"))))
+        (cxml:with-element "superclass"
+          (random-name (class-name super) other-packages "class"))))
     (cxml:with-element "subclasses"
       (labels ((recurse (c)
-		 (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
-			      #+allegro (aclmop:class-direct-subclasses c)
+                 (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
+                              #+allegro (aclmop:class-direct-subclasses c)
                               #+lispworks (hcl:class-direct-subclasses c))
-		   (if (good-symbol-p (class-name sub) other-packages)
-		       (cxml:with-element "subclass"
-			 (random-name (class-name sub) other-packages "class"))
-		       (recurse sub)))))
-	(recurse class)))
+                   (if (good-symbol-p (class-name sub) other-packages)
+                       (cxml:with-element "subclass"
+                         (random-name (class-name sub) other-packages "class"))
+                       (recurse sub)))))
+        (recurse class)))
     (when (and *include-slot-definitions-p*
-	       (not (typep class 'structure-class)))
+               (not (typep class 'structure-class)))
       (cxml:with-element "direct-slots"
-	(dolist (slot (closer-mop:class-direct-slots class))
-	  (emit-slot slot))))
+        (dolist (slot (closer-mop:class-direct-slots class))
+          (emit-slot slot))))
     (emit-docstring (class-name class) (documentation class t))))
 
 (defun emit-condition (class other-packages)
@@ -692,41 +646,41 @@
     (closer-mop:finalize-inheritance class)
     (cxml:with-element "cpl"
       (dolist (super (cdr #+sbcl (sb-pcl:class-precedence-list class)
-			  #+allegro (aclmop:class-precedence-list class)
+                          #+allegro (aclmop:class-precedence-list class)
                           #+lispworks (hcl:class-precedence-list class)))
-	(cxml:with-element "superclass"
-	  (random-name (class-name super)
+        (cxml:with-element "superclass"
+          (random-name (class-name super)
                        other-packages
                        "condition"))))
     (cxml:with-element "subclasses"
       (labels ((recurse (c)
-		 (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
-			      #+allegro (aclmop:class-direct-subclasses c)
+                 (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
+                              #+allegro (aclmop:class-direct-subclasses c)
                               #+lispworks (hcl:class-direct-subclasses c))
-		   (if (good-symbol-p (class-name sub)
+                   (if (good-symbol-p (class-name sub)
                                       (cons (find-package :common-lisp)
                                             other-packages))
-		       (cxml:with-element "subclass"
-			 (random-name (class-name sub)
+                       (cxml:with-element "subclass"
+                         (random-name (class-name sub)
                                       other-packages
                                       "condition"))
-		       (recurse sub)))))
-	(recurse class)))
+                       (recurse sub)))))
+        (recurse class)))
     (when (and *include-slot-definitions-p*
-	       (not (typep class 'structure-class)))
+               (not (typep class 'structure-class)))
       (cxml:with-element "direct-slots"
-	(dolist (slot (closer-mop:class-direct-slots class))
-	  (emit-slot slot))))
+        (dolist (slot (closer-mop:class-direct-slots class))
+          (emit-slot slot))))
     (emit-docstring (class-name class) (documentation class t))))
 
 (defun emit-docstring (package-designator str)
   (let ((package (etypecase package-designator
-		   (symbol (symbol-package package-designator))
-		   (package package-designator))))
+                   (symbol (symbol-package package-designator))
+                   (package package-designator))))
     (when str
       (cxml:with-element "documentation-string"
-	(cxml::maybe-emit-start-tag)
-	(parse-docstring str (make-instance 'docstring-parser
+        (cxml::maybe-emit-start-tag)
+        (parse-docstring str (make-instance 'docstring-parser
                                             :docstring-package package
                                             :chained-handler cxml::*sink*))))))
 
@@ -736,81 +690,80 @@
 
 (defun characters (handler str)
   (let ((lines (coerce (split-sequence:split-sequence #\newline str) 'vector))
-	(ignore nil))
+    (ignore nil))
     (sax:characters handler (elt lines 0))
     (when (> (length lines) 1)
       (loop
-	  for i from 1 below (1- (length lines))
-	  for line = (elt lines i)
-	  do
-	    (cond
-	      ((zerop (length (string-trim " " line)))
-		(unless ignore
-		  (sax:start-element handler nil "break" "break" nil)
-		  (sax:end-element handler nil "break" "break"))
-		(setf ignore t))
-	      (t
-		(sax:characters handler (string #\newline))
-		(sax:characters handler line)
-		(setf ignore nil))))
-      (sax:characters handler (elt lines (1- (length lines)))))))
+        for i from 1 below (1- (length lines))
+        for line = (elt lines i)
+        do
+          (cond
+            ((zerop (length (string-trim " " line)))
+             (unless ignore
+               (sax:start-element handler nil "break" "break" nil)
+               (sax:end-element handler nil "break" "break"))
+             (setf ignore t))
+            (t
+             (sax:characters handler (string #\newline))
+             (sax:characters handler line)
+             (setf ignore nil))))
+        (sax:characters handler (elt lines (1- (length lines)))))))
 
 (defun parse-docstring-1 (stream handler close)
   (let ((out (make-string-output-stream)))
     (loop for c = (read-char stream nil) do
-	  (cond
-	    ((null c)
-	      (when close
-		(error "unexpected end of documentation string"))
-	      (return))
-	    ((eql c #\@)
-	      (cond
-		((eql (peek-char nil stream nil) #\})
-		 (write-char (read-char stream) out))
-		((eql (peek-char nil stream nil) #\@)
-		 (write-char (read-char stream) out))
-                ((eql (peek-char nil stream nil) #\])
-                 (write-char (read-char stream) out))
-		(t
-		  (characters handler (get-output-stream-string out))
-		  (let ((name (read-delimited-string stream "[{ :")))
-		    (when (equal name "end")
-		      (read-char stream)
-		      (unless
-			  (equal (read-delimited-string stream "}" t) close)
-			(error "invalid close tag"))
-		      (return))
-		    (parse-docstring-element stream handler name)))))
-	    ((eql c #\})
-	      (when (eq close t)
-		(return))
-	      (error "unexpected closing brace"))
-	    (t
-	      (write-char c out))))
+      (cond
+        ((null c)
+         (when close
+           (error "unexpected end of documentation string"))
+         (return))
+        ((eql c #\@)
+         (cond
+           ((eql (peek-char nil stream nil) #\})
+            (write-char (read-char stream) out))
+           ((eql (peek-char nil stream nil) #\@)
+            (write-char (read-char stream) out))
+           ((eql (peek-char nil stream nil) #\])
+            (write-char (read-char stream) out))
+           (t
+            (characters handler (get-output-stream-string out))
+            (let ((name (read-delimited-string stream "[{ :")))
+              (when (equal name "end")
+                (read-char stream)
+                (unless (equal (read-delimited-string stream "}" t) close)
+                  (error "invalid close tag"))
+                (return))
+              (parse-docstring-element stream handler name)))))
+        ((eql c #\})
+         (when (eq close t)
+           (return))
+         (error "unexpected closing brace"))
+        (t
+         (write-char c out))))
     (characters handler (get-output-stream-string out))))
 
 (defun read-delimited-string (stream bag &optional eat-limit)
   (let ((out (make-string-output-stream)))
     (loop
-	for c = (read-char stream nil)
-	do
-	  (when (null c)
-	    (error "unexpected end of documentation string"))
-          (when (eql c #\@)
-            (cond ((eql (peek-char nil stream nil) #\])
-                   (write-char (read-char stream nil) out)
-                   (setq c (read-char stream nil)))))
-          (when (find c bag)
-            (unless eat-limit
-              (unread-char c stream))
-            (return (get-output-stream-string out)))
-          (write-char c out))))
+      for c = (read-char stream nil)
+      do
+        (when (null c)
+          (error "unexpected end of documentation string"))
+        (when (eql c #\@)
+          (cond ((eql (peek-char nil stream nil) #\])
+                 (write-char (read-char stream nil) out)
+                 (setq c (read-char stream nil)))))
+        (when (find c bag)
+          (unless eat-limit
+            (unread-char c stream))
+          (return (get-output-stream-string out)))
+        (write-char c out))))
 
 (defun parse-docstring-element (stream handler name)
   (let ((close t)
-	(arg nil)
-	(attrs '())
-	(first-char (read-char stream)))
+        (arg nil)
+        (attrs '())
+        (first-char (read-char stream)))
     (when (eql first-char #\[)
       (setf arg (read-delimited-string stream "]" t))
       (setf first-char (read-char stream)))
@@ -830,7 +783,7 @@
 
 (defclass docstring-parser (cxml:sax-proxy)
     ((docstring-package :initarg :docstring-package
-			:accessor docstring-package)
+                        :accessor docstring-package)
      (current-name :initform nil :accessor current-name)
      (current-kind :accessor current-kind)
      (current-attributes :accessor current-attributes)
@@ -840,37 +793,37 @@
   (declare (ignore lname uri))
   (cond
     ((or (equal qname "fun")
-	 (equal qname "class")
+         (equal qname "class")
          (equal qname "struct")
          (equal qname "condition")
-	 (equal qname "type")
-	 (equal qname "variable")
-	 (equal qname "slot")
-	 (equal qname "see")
+         (equal qname "type")
+         (equal qname "variable")
+         (equal qname "slot")
+         (equal qname "see")
          (equal qname "see-variable")
          (equal qname "see-class")
          (equal qname "see-struct")
-	 (equal qname "see-condition")
-	 (equal qname "see-slot")
-	 (equal qname "see-constructor"))
-      (setf (current-name handler) qname)
-      (setf (current-kind handler)
-	    (case (intern qname :atdoc)
-	      ((|fun| |class| |type| |variable| |struct| |condition|) qname)
-	      ((|see| |see-slot| |slot|) "fun")
-	      (|see-constructor| "fun")
-              (|see-variable| "variable")
-              (|see-type| "type")
-	      (|see-condition| "class")))
-      (setf (current-attributes handler) attrs)
-      (setf (current-text handler) ""))
+         (equal qname "see-condition")
+         (equal qname "see-slot")
+         (equal qname "see-constructor"))
+     (setf (current-name handler) qname)
+     (setf (current-kind handler)
+           (case (intern qname :atdoc)
+             ((|fun| |class| |type| |variable| |struct| |condition|) qname)
+             ((|see| |see-slot| |slot|) "fun")
+             (|see-constructor| "fun")
+             (|see-variable| "variable")
+             (|see-type| "type")
+             (|see-condition| "class")))
+     (setf (current-attributes handler) attrs)
+     (setf (current-text handler) ""))
     (t
-      (call-next-method))))
+     (call-next-method))))
 
 (defmethod sax:characters ((handler docstring-parser) data)
   (if (current-name handler)
       (setf (current-text handler)
-	    (concatenate 'string (current-text handler) data))
+            (concatenate 'string (current-text handler) data))
       (call-next-method)))
 
 (defmethod sax:end-element ((handler docstring-parser) uri lname qname)
@@ -878,18 +831,18 @@
   (let ((name (current-name handler)))
     (block give-up
       (when (equal qname name)
-	(let* ((next (cxml:proxy-chained-handler handler))
+        (let* ((next (cxml:proxy-chained-handler handler))
                (attrs (current-attributes handler))
                (text (current-text handler))
                (munged-name
-        	(handler-case
-        	    (munge-name
-        	     (let ((*package* (docstring-package handler)))
-        	       (read-from-string text))
-        	     (current-kind handler))
-        	  (error (c)
-        	    (warn "ignoring ~A" c)
-        	    nil))))
+                 (handler-case
+                   (munge-name
+                     (let ((*package* (docstring-package handler)))
+                       (read-from-string text))
+                     (current-kind handler))
+                   (error (c)
+                          (warn "ignoring ~A" c)
+                           nil))))
           (when munged-name
             (push (sax:make-attribute :qname "id" :value munged-name) attrs))
           (sax:start-element next nil name name attrs)
