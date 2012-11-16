@@ -26,12 +26,16 @@
 
 (asdf:load-system :atdoc)
 
-(load "atdoc-doc.lisp")
+(load "atdoc-atdoc.lisp")
 
-(defpackage :atdoc-doc
- (:use :atdoc :common-lisp))
+(defpackage :atdoc-atdoc
+  (:use :atdoc :common-lisp)
+  (:export #:generate-html
+           #:generate-html-single-page
+           #:generate-latex
+           #:generate-info))
 
-(in-package :atdoc-doc)
+(in-package :atdoc-atdoc)
 
 (defun generate-html ()
   (let* ((base (asdf:component-pathname (asdf:find-system :atdoc)))
@@ -40,7 +44,7 @@
     (atdoc:generate-html-documentation
       '(:atdoc)
       output-directory
-      :index-title "atdoc"
+      :index-title "atdoc API reference"
       :heading "atdoc"
       :css "crategus.css"
       :logo nil
@@ -50,12 +54,12 @@
 
 (defun generate-html-single-page ()
   (let* ((base (asdf:component-pathname (asdf:find-system :atdoc)))
-         (output-directory (merge-pathnames "atdoc/" base)))
+         (output-directory (merge-pathnames "atdoc/single-page/" base)))
     (ensure-directories-exist output-directory)
     (atdoc:generate-html-documentation
       '(:atdoc)
       output-directory
-      :index-title "atdoc"
+      :index-title "atdoc API reference"
       :heading "atdoc"
       :css "crategus.css"
       :logo nil
@@ -63,6 +67,29 @@
       :include-slot-definitions-p t
       :include-internal-symbols-p nil)))
 
+(defun generate-latex ()
+  (let* ((base (asdf:component-pathname (asdf:find-system :atdoc)))
+         (output-directory (merge-pathnames "atdoc/latex/" base)))
+    (ensure-directories-exist output-directory)
+    (atdoc:generate-latex-documentation
+      '(:atdoc)
+      output-directory
+      :title "atdoc API reference"
+      :include-slot-definitions-p t
+      :run-tex-p t)))
+
+(defun generate-info ()
+  (let* ((base (asdf:component-pathname (asdf:find-system :atdoc)))
+         (output-directory (merge-pathnames "atdoc/info/" base)))
+    (ensure-directories-exist output-directory)
+    (atdoc:generate-info-documentation
+      '(:atdoc)
+      output-directory
+      :name "atdoc"
+      :title "atdoc API reference"
+      :include-slot-definitions-p t)))
+
 (generate-html)
+(generate-html-single-page)
 
 ;;; --- End of file atdoc.lisp -------------------------------------------------
