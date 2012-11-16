@@ -39,7 +39,7 @@
 
     @b{Version}
 
-    This is a documentation of a fork of @em{atdoc} from February, 22 2012.
+    This is a documentation of a fork of @em{atdoc} from February 22, 2012.
 
     @b{Homepage}
 
