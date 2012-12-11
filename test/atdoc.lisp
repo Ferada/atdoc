@@ -44,6 +44,8 @@
     (atdoc:generate-html-documentation
       '(:test :test-2 :test-3 :test-4)
       output-directory
+      :author "Crategus"
+      :author-url "http://www.crategus.com"
       :index-title "The Index Title"
       :heading "The Heading"
       :css "crategus.css"

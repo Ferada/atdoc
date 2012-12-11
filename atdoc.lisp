@@ -30,11 +30,13 @@
 
 (in-package :atdoc)
 
+(defvar *atdoc-external-symbols* (make-hash-table))
+
 (defun get-date ()
   (multiple-value-bind (second minute hour date month year day-of-week dst-p tz)
       (get-decoded-time)
     (declare (ignore second minute hour day-of-week dst-p tz))
-    (format nil "~d.~d.~d" date month year)))
+    (format nil "~d-~d-~d" year month date)))
 
 #+sbcl
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -134,6 +136,13 @@
             res-output))
       (hcl:change-directory original-directory))))
 ||#
+
+(defun get-slot-from-name (slot-name class-name)
+  (let ((pos (position (string-upcase slot-name)
+                       (mapcar #'closer-mop:slot-definition-name
+                               (closer-mop:class-direct-slots
+                                 (find-class class-name))) :test 'string=)))
+    (nth pos (closer-mop:class-direct-slots (find-class class-name)))))
 
 (defvar *stylesheets*)
 
@@ -266,6 +275,7 @@
                              (index-title "No Title")
                              (heading "No Heading")
                              (css "default.css")
+                             (ico "lambda.ico")
                              (logo nil)
                              (single-page-p nil)
                              (include-slot-definitions-p nil)
@@ -313,6 +323,7 @@
                          :include-internal-symbols-p include-internal-symbols-p
                          :single-page-p single-page-p
                          :logo logo
+                         :ico ico
                          :index-title index-title
                          :css "index.css"
                          :heading heading
@@ -323,6 +334,8 @@
     (copy-file (magic-namestring css) "index.css"
                :if-exists :rename-and-delete)
     (copy-file (magic-namestring "header.gif") "header.gif"
+               :if-exists :rename-and-delete)
+    (copy-file (magic-namestring "lambda.ico") "lambda.ico"
                :if-exists :rename-and-delete)
     (apply-stylesheet-chain ".atdoc.xml"
                 (list "cleanup.xsl"
@@ -445,21 +458,34 @@
   (when (boundp sym)
     (emit-variable sym))
   (when (fboundp sym)
-    (if (macro-function sym)
-    (emit-macro sym)
-    (emit-function sym)))
+    (cond ((macro-function sym)
+           (emit-macro sym))
+          ((special-operator-p sym)
+           (emit-operator sym))
+          ((typep (symbol-function sym) 'generic-function)
+           (emit-generic-function sym))
+          (t
+           (emit-function sym))))
   (when (find-class sym nil)
         (cond ((typep (find-class sym nil) 'standard-class)
                (emit-class (find-class sym) other-packages))
               ((typep (find-class sym nil) 'structure-class)
                (emit-struct (find-class sym) other-packages))
               ((typep (find-class sym nil) 'built-in-class)
-               (emit-system-class (find-class sym) other-packages))
-              (t
+               (emit-systemclass (find-class sym) other-packages))
+              ((subtypep (find-class sym) (find-class 'function))
+               (emit-systemclass (find-class sym) other-packages))
+              ((subtypep (find-class sym) (find-class 'condition))
                (emit-condition (find-class sym nil) other-packages))))
   (when (and (documentation sym 'type)
              (not (find-class sym nil)))
-    (emit-type sym)))
+    (emit-type sym))
+  (if (or (gethash sym *atdoc-external-symbols*)
+          (and (not (boundp sym))
+               (not (fboundp sym))
+               (not (find-class sym nil))
+               (not (documentation sym 'type))))
+    (emit-symbol sym)))
 
 (defun internalp (sym package other-packages)
   "Check whether SYM is internal to some package, but not external
@@ -494,13 +520,20 @@
 (defun emit-variable (name)
   (cxml:with-element "variable-definition"
     (name name "variable")
-    (cxml:attribute "value" (format nil "~A" (symbol-value name)))
+;    (cxml:attribute "value" (format nil "~A" (symbol-value name)))
     (emit-docstring name (documentation name 'variable))))
 
 (defun emit-type (name)
   (cxml:with-element "type-definition"
     (name name "type")
     (emit-docstring name (documentation name 'type))))
+
+(defun emit-symbol (name)
+  (cxml:with-element "symbol-definition"
+    (name name "symbol")
+    (if (gethash name *atdoc-external-symbols*)
+        (emit-docstring name (gethash name *atdoc-external-symbols*))
+        (emit-docstring name "no documentation string found"))))
 
 (defun emit-function (name)
   (cxml:with-element "function-definition"
@@ -514,9 +547,33 @@
                                       :case :downcase)))))
     (emit-docstring name (documentation name 'function))))
 
+(defun emit-generic-function (name)
+  (cxml:with-element "generic-definition"
+    (name name "generic")
+    (cxml:with-element "lambda-list"
+      (dolist (arg (lambda-list (symbol-function name)))
+        (cxml:with-element "elt"
+          (cxml:text (write-to-string arg
+                                      :pretty t
+                                      :escape nil
+                                      :case :downcase)))))
+    (emit-docstring name (documentation name 'function))))
+
+(defun emit-operator (name)
+  (cxml:with-element "operator-definition"
+    (name name "operator")
+    (cxml:with-element "lambda-list"
+      (dolist (arg (lambda-list (symbol-function name)))
+        (cxml:with-element "elt"
+          (cxml:text (write-to-string arg
+                                      :pretty t
+                                      :escape nil
+                                      :case :downcase)))))
+    (emit-docstring name (documentation name 'function))))
+
 (defun emit-macro (name)
   (cxml:with-element "macro-definition"
-    (name name "fun")
+    (name name "macro")
     (cxml:with-element "lambda-list"
       (dolist (arg (lambda-list (macro-function name)))
         (cxml:with-element "elt"
@@ -540,41 +597,37 @@
     (cxml:with-element "readers"
       (dolist (reader (closer-mop:slot-definition-readers slot-def))
         (cxml:with-element "reader" (name reader "symbol"))))
-    ;; FIXME: writer methods will be of the form (setf name) which breaks in
-    ;;        munge-name
+    ;; FIXME: Writer methods will be of the form (setf name) which breaks in
+    ;; munge-name.
     ;;     (cxml:with-element "writers"
     ;;       (dolist (writer (closer-mop:slot-definition-writers slot-def))
     ;;  (cxml:attribute "writer" (munge-name writer "writer"))))
     (emit-docstring (closer-mop:slot-definition-name slot-def)
                     (documentation slot-def t))))
 
+(defun clean-class-list (classes)
+  (let ((l classes))
+    (dolist (class classes)
+      (let ((status (nth-value 1 (find-symbol (symbol-name (class-name class))))))
+        (when (or (not status) (eq status :internal))
+          (setq l (remove class l)))))
+    l))
+
 (defun emit-class (class other-packages)
   (cxml:with-element "class-definition"
     (name (class-name class) "class")
-    #+sbcl (sb-pcl:finalize-inheritance class)
-    #+allegro (unless (typep class 'structure-class)
-        (aclmop:finalize-inheritance class))
-    #+lispworks (clos:finalize-inheritance class)
+    (closer-mop:finalize-inheritance class)
     (cxml:with-element "cpl"
-      (dolist (super (cdr #+sbcl (sb-pcl:class-precedence-list class)
-                          #+allegro (aclmop:class-precedence-list class)
-                          #+lispworks (hcl:class-precedence-list class)))
+      (dolist (super (cdr (clean-class-list (closer-mop:class-precedence-list class))))
         (cxml:with-element "superclass"
           (random-name (class-name super) other-packages "class"))))
     (cxml:with-element "subclasses"
       (labels ((recurse (c)
-                 (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
-                              #+allegro (aclmop:class-direct-subclasses c)
-                              #+lispworks (hcl:class-direct-subclasses c))
-                   (if (good-symbol-p (class-name sub)
-                                      (cons (find-package :common-lisp)
-                                            other-packages))
+                 (dolist (sub (closer-mop:class-direct-subclasses c))
+                   (if (good-symbol-p (class-name sub) other-packages)
                        (cxml:with-element "subclass"
-                         (random-name (class-name sub)
-                                      (cons (find-package :common-lisp)
-                                            other-packages)
-                                      "class"))
-                       (recurse sub)))))
+                         (random-name (class-name sub) other-packages "class")
+                       (recurse sub))))))
         (recurse class)))
     (when (and *include-slot-definitions-p*
                (not (typep class 'structure-class)))
@@ -583,13 +636,11 @@
           (emit-slot slot))))
     (emit-docstring (class-name class) (documentation class t))))
 
-(defun emit-system-class (class other-packages)
-  (cxml:with-element "system-class-definition"
-    (name (class-name class) "system-class")
+(defun emit-systemclass (class other-packages)
+  (cxml:with-element "systemclass-definition"
+    (name (class-name class) "systemclass")
     (cxml:with-element "cpl"
-      (dolist (super (cdr #+sbcl (sb-pcl:class-precedence-list class)
-                          #+allegro (aclmop:class-precedence-list class)
-                          #+lispworks (hcl:class-precedence-list class)))
+      (dolist (super (cdr (clean-class-list (closer-mop:class-precedence-list class))))
         (cxml:with-element "superclass"
           (random-name (class-name super) other-packages "class"))))
     (cxml:with-element "subclasses"
@@ -618,9 +669,7 @@
                 (aclmop:finalize-inheritance class))
     #+lispworks (clos:finalize-inheritance class)
     (cxml:with-element "cpl"
-      (dolist (super (cdr #+sbcl (sb-pcl:class-precedence-list class)
-                          #+allegro (aclmop:class-precedence-list class)
-                          #+lispworks (hcl:class-precedence-list class)))
+      (dolist (super (cdr (clean-class-list (closer-mop:class-precedence-list class))))
         (cxml:with-element "superclass"
           (random-name (class-name super) other-packages "class"))))
     (cxml:with-element "subclasses"
@@ -645,9 +694,7 @@
     (name (class-name class) "condition")
     (closer-mop:finalize-inheritance class)
     (cxml:with-element "cpl"
-      (dolist (super (cdr #+sbcl (sb-pcl:class-precedence-list class)
-                          #+allegro (aclmop:class-precedence-list class)
-                          #+lispworks (hcl:class-precedence-list class)))
+      (dolist (super (cdr (clean-class-list (closer-mop:class-precedence-list class))))
         (cxml:with-element "superclass"
           (random-name (class-name super)
                        other-packages
@@ -792,29 +839,57 @@
 (defmethod sax:start-element ((handler docstring-parser) uri lname qname attrs)
   (declare (ignore lname uri))
   (cond
-    ((or (equal qname "fun")
+    ((or (equal qname "var")
+         (equal qname "fun")
+         (equal qname "gen")
+         (equal qname "operator")
+         (equal qname "macro")
+         (equal qname "type")
+         (equal qname "symbol")
          (equal qname "class")
+         (equal qname "systemclass")
          (equal qname "struct")
          (equal qname "condition")
-         (equal qname "type")
-         (equal qname "variable")
          (equal qname "slot")
          (equal qname "see")
          (equal qname "see-variable")
+         (equal qname "see-function")
+         (equal qname "see-generic")
+         (equal qname "see-operator")
+         (equal qname "see-macro")
+         (equal qname "see-type")
+         (equal qname "see-symbol")
          (equal qname "see-class")
+         (equal qname "see-systemclass")
          (equal qname "see-struct")
          (equal qname "see-condition")
+         (equal qname "see-signalled")
          (equal qname "see-slot")
          (equal qname "see-constructor"))
      (setf (current-name handler) qname)
      (setf (current-kind handler)
            (case (intern qname :atdoc)
-             ((|fun| |class| |type| |variable| |struct| |condition|) qname)
-             ((|see| |see-slot| |slot|) "fun")
+             (|var| "variable")
+             ((|fun| |class| |systemclass| |type| |struct| |condition|) qname)
+             (|gen| "generic")
+             (|macro|   "macro")
+             (|symbol|  "symbol")
+             (|operator| "operator")
+             ((|see| |slot|) "fun")
+             (|see-variable|    "variable")
+             (|see-function|    "fun")
+             (|see-generic|     "generic")
+             (|see-operator|    "operator")
+             (|see-macro|       "macro")
+             (|see-type|        "type")
+             (|see-symbol|      "symbol")
+             (|see-class|       "class")
+             (|see-systemclass| "systemclass")
+             (|see-struct|      "struct")
+             (|see-condition|   "condition")
+             (|see-signalled|   "condition")
              (|see-constructor| "fun")
-             (|see-variable| "variable")
-             (|see-type| "type")
-             (|see-condition| "class")))
+             (|see-slot|        "generic")))
      (setf (current-attributes handler) attrs)
      (setf (current-text handler) ""))
     (t

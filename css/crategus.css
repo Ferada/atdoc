@@ -51,7 +51,6 @@ body {
   /* margin-left added */
   margin-left: 5%;
   margin-right: 5%;
-  margin-botton: 5%;
   font-family: verdana, arial;
 }
 
@@ -73,32 +72,29 @@ body {
 h3 {
   width: 100%;
   color: #000000;
-  border-bottom: 1px solid #ff9500;
+  border-bottom: 1px solid #ff9900;
   margin-left: -3px;
   padding-left: 3px;
 }
 
 h4 {
+  font-weight: bold;
+  margin-top: 0.0em;
+  margin-bottom: 0.3em;
 }
 
 .grau {
   padding-top: 1em;
 }
 
-.code {
-  border: solid 1px #d0d0d0;
-  padding: 1em;
-  margin-right: 10%;
-}
-
 .indent {
-  margin-left: 20px;
+  margin-left: 30px;
 /*  padding-bottom: 1em; */
 }
 
 .def {
   padding: 1px 1px 1px 1px;
-  margin-bottom: 1px;
+  margin-bottom: 10px;
   font-weight: bold;
   margin-right: 40px;
 }
@@ -114,10 +110,9 @@ h4 {
 }
 
 #header {
-
 /*  margin-right: 22px; */
 /*  border-bottom: 1px solid black; */
-  border-bottom: 1px solid #ff9500;
+  border-bottom: 1px solid #ff9900;
   font-family: verdana, arial;
   font-size: 12pt;
   padding-bottom: 1px;
@@ -125,12 +120,19 @@ h4 {
 
 /* Add a style for a footer for each page */
 #footer {
-  border-top: 1px solid #ff9500;
+  border-top: 1px solid #ff9900;
   font-family: verdana, arial;
   font-size: 10pt;
   padding-top: 3px;
-  margin-top: 20pt;
+  margin-top: 10pt;
   margin-bottom: 20pt;
+}
+
+#version {
+  text-align: right;
+  font-family: verdana, arial;
+  font-size: 10pt;
+/*  margin-right: 30px; */
 }
 
 pre {
@@ -139,6 +141,7 @@ pre {
   padding: 1em;
 /*  margin-right: 10%; */
 }
+
 #sp-package-list {
   /* ... */
 }
@@ -149,19 +152,22 @@ pre {
 
 .sp-lambda-list {
   width: 90%;
-  background-color: #f4f4f4;
+  border: solid 1px #d0d0d0;
+  background-color: #eeeeee;
   padding: 3px 3px 3px 3px;
 }
 
 .sp-definition {
   width: 90%;
-  border: 1px solid #cccccc;
+  border: 1px solid #d0d0d0;
   padding: 3px 3px 3px 3px;
 }
 
 .sp-definition-body {
-  padding-left: 10%;
-  padding-bottom: 2em;
+/*  padding-left: 10%; */
+  padding-left: 30px;
+  padding-right: 30px;
+  padding-bottom: 1em;
 }
 
 .sp-definition-body ul {
@@ -174,5 +180,41 @@ pre {
 
 .sph3 {
   padding-top: 1em;
+  padding-bottom: 10px;
   font-weight: bold;
 }
+
+.sph4 {
+  font-weight: bold;
+  margin-top: 0.0em;
+  margin-bottom: 0.3em;
+}
+
+.arg {
+/*  color: blue; */
+  font-family: monospace;
+  font-style: italic;
+  font-size: 100% }
+
+.sym {
+/*  color: blue; */
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 100% }
+
+.term {
+/*  color: blue; */
+  font-style: italic;
+  font-size: 100% }
+
+.defterm {
+/*  color: blue; */
+  font-weight: bold;
+  font-style: italic;
+  font-size: 100% }
+
+.code {
+/*  color: blue; */
+  font-family: monospace;
+  font-size: 100% }
+
