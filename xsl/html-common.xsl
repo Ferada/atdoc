@@ -13,8 +13,8 @@
     <xsl:param name="packagep"/>
     <simple-table>
       <xsl:apply-templates mode="symbol-index">
-      <xsl:sort select="@name" data-type="text" order="ascending"/>
-      <xsl:with-param name="packagep" select="$packagep"/>
+        <xsl:sort select="@name" data-type="text" order="ascending"/>
+        <xsl:with-param name="packagep" select="$packagep"/>
       </xsl:apply-templates>
     </simple-table>
   </xsl:template>
@@ -57,7 +57,7 @@
           </span>
         </a>
         <xsl:text>, </xsl:text>
-        <xsl:value-of select="$kind"/>
+        <xsl:value-of select="@kind-name"/>
         <xsl:call-template name="undocumented"/>
       </cell>
     </row>

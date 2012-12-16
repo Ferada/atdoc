@@ -7,9 +7,9 @@
                 xmlns:macro="http://lichteblau.com/macro"
                 version="1.0">
 
-  <xsl:import href="html-common.tmp"/>
+  <xsl:import  href="html-common.tmp"/>
   <xsl:include href="base-uri.xsl"/>
-  <xsl:output method="xml" indent="yes"/>
+  <xsl:output  method="xml" indent="yes"/>
 
   <xsl:key name="about-symbol"      match="about-symbol"      use="string(.)"/>
   <xsl:key name="about-variable"    match="about-variable"    use="string(.)"/>
@@ -304,19 +304,19 @@
     <a name="{@id}"/>
     <div class="sp-lambda-list">
       <b>
-    <xsl:value-of select="$label"/>
-    <xsl:text> </xsl:text>
-    <xsl:value-of select="@name"/>
+        <xsl:value-of select="@kind-name"/>
+        <xsl:text> </xsl:text>
+        <xsl:value-of select="@name"/>
       </b>
       <xsl:if test="lambda-list">
-    <xsl:text> (</xsl:text>
-    <xsl:for-each select="lambda-list/elt">
-      <xsl:if test="position() != 1">
-        <xsl:text>&#160;</xsl:text>
-      </xsl:if>
-      <xsl:value-of select="text()"/>
-    </xsl:for-each>
-    <xsl:text>)</xsl:text>
+        <xsl:text> (</xsl:text>
+        <xsl:for-each select="lambda-list/elt">
+          <xsl:if test="position() != 1">
+            <xsl:text>&#160;</xsl:text>
+          </xsl:if>
+          <xsl:value-of select="text()"/>
+        </xsl:for-each>
+        <xsl:text>)</xsl:text>
       </xsl:if>
     </div>
   </xsl:template>

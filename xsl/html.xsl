@@ -257,6 +257,7 @@
     </page>
   </xsl:template>
 
+
   <xsl:template name="main-left">
     <xsl:choose>
       <xsl:when test="documentation-string">
@@ -347,7 +348,8 @@
           </a>
         </p>
         <h2 class="page-title">
-          Symbol
+          <xsl:value-of select="@kind-name"/>
+          <xsl:text> </xsl:text>
           <xsl:value-of select="@name"/>
         </h2>
       </padded>
@@ -380,7 +382,8 @@
           </a>
         </p>
         <h2 class="page-title">
-          Variable
+          <xsl:value-of select="@kind-name"/>
+          <xsl:text> </xsl:text>
           <xsl:value-of select="@name"/>
         </h2>
       </padded>
@@ -411,13 +414,13 @@
           </a>
         </p>
         <h2 class="page-title">
-          Function
+          <xsl:value-of select="@kind-name"/>
+          <xsl:text> </xsl:text>
           <xsl:value-of select="@name"/>
         </h2>
       </padded>
       <macro:maybe-columns test="see-also">
         <padded>
-<!--          <xsl:apply-templates select="version"/> -->
           <h3>Lambda List</h3>
           <div class="indent">
             <xsl:apply-templates select="lambda-list"/>
@@ -448,7 +451,8 @@
           </a>
         </p>
         <h2 class="page-title">
-          Generic Function
+          <xsl:value-of select="@kind-name"/>
+          <xsl:text> </xsl:text>
           <xsl:value-of select="@name"/>
         </h2>
       </padded>
@@ -484,7 +488,8 @@
           </a>
         </p>
         <h2 class="page-title">
-          Special Operator
+          <xsl:value-of select="@kind-name"/>
+          <xsl:text> </xsl:text>
           <xsl:value-of select="@name"/>
         </h2>
       </padded>
@@ -520,7 +525,8 @@
          </a>
         </p>
         <h2 class="page-title">
-          Macro
+          <xsl:value-of select="@kind-name"/>
+          <xsl:text> </xsl:text>
           <xsl:value-of select="@name"/>
         </h2>
       </padded>
@@ -556,7 +562,8 @@
           </a>
         </p>
         <h2 class="page-title">
-          Type
+          <xsl:value-of select="@kind-name"/>
+          <xsl:text> </xsl:text>
           <xsl:value-of select="@name"/>
         </h2>
       </padded>
@@ -906,20 +913,19 @@
   </xsl:template>
 
   <xsl:template name="about-arguments">
-    <xsl:param name="label"/>
     <div class="def">
       <a href="{../@id}.html">
-    <xsl:value-of select="$label"/>
-    <xsl:text> </xsl:text>
-    <xsl:value-of select="../@name"/>
-    <xsl:text> (</xsl:text>
-    <xsl:for-each select="elt">
-      <xsl:if test="position() != 1">
-        <xsl:text>&#160;</xsl:text>
-      </xsl:if>
-      <xsl:value-of select="text()"/>
-    </xsl:for-each>
-    <xsl:text>)</xsl:text>
+        <xsl:value-of select="../@kind-name"/>
+        <xsl:text> </xsl:text>
+        <xsl:value-of select="../@name"/>
+        <xsl:text> (</xsl:text>
+        <xsl:for-each select="elt">
+          <xsl:if test="position() != 1">
+            <xsl:text>&#160;</xsl:text>
+          </xsl:if>
+          <xsl:value-of select="text()"/>
+        </xsl:for-each>
+        <xsl:text>)</xsl:text>
       </a>
     </div>
   </xsl:template>
@@ -1289,6 +1295,31 @@
 
   <!-- End of Dictionary entries -->
 
+  <xsl:template match="about-symbol">
+    <xsl:for-each select="key('symbol-by-name', text())">
+      <div class="def">
+        <a href="{@id}.html">
+          <xsl:value-of select="@kind-name"/>
+          <xsl:text> </xsl:text>
+          <xsl:value-of select="@name"/>
+        </a>
+      </div>
+      <xsl:choose>
+        <xsl:when test="documentation-string//short">
+          <div class="indent">
+            <xsl:apply-templates select="documentation-string//short"/>
+            <xsl:text> </xsl:text>
+            <a href="{@id}.html#details">...</a>
+          </div>
+          </xsl:when>
+            <xsl:otherwise>
+            <xsl:apply-templates select="documentation-string"/>
+          </xsl:otherwise>
+        </xsl:choose>
+      <br/>
+    </xsl:for-each>
+  </xsl:template>
+
   <xsl:template match="about-variable">
     <xsl:for-each select="key('variable-by-name', text())">
       <div class="def">
@@ -1410,30 +1441,6 @@
       <div class="def">
         <a href="{@id}.html">
           Type
-          <xsl:value-of select="@name"/>
-        </a>
-      </div>
-      <xsl:choose>
-        <xsl:when test="documentation-string//short">
-          <div class="indent">
-            <xsl:apply-templates select="documentation-string//short"/>
-            <xsl:text> </xsl:text>
-            <a href="{@id}.html#details">...</a>
-          </div>
-          </xsl:when>
-            <xsl:otherwise>
-            <xsl:apply-templates select="documentation-string"/>
-          </xsl:otherwise>
-        </xsl:choose>
-      <br/>
-    </xsl:for-each>
-  </xsl:template>
-
-  <xsl:template match="about-symbol">
-    <xsl:for-each select="key('symbol-by-name', text())">
-      <div class="def">
-        <a href="{@id}.html">
-          Symbol
           <xsl:value-of select="@name"/>
         </a>
       </div>
