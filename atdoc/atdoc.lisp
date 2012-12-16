@@ -44,6 +44,8 @@
     (atdoc:generate-html-documentation
       '(:atdoc)
       output-directory
+      :author "Crategus"
+      :author-url "http://www.crategus.com"
       :index-title "atdoc API reference"
       :heading "atdoc"
       :css "crategus.css"
@@ -59,6 +61,8 @@
     (atdoc:generate-html-documentation
       '(:atdoc)
       output-directory
+      :author "Crategus"
+      :author-url "http://www.crategus.com"
       :index-title "atdoc API reference"
       :heading "atdoc"
       :css "crategus.css"

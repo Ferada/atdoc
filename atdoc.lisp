@@ -30,7 +30,9 @@
 
 (in-package :atdoc)
 
-(defvar *atdoc-external-symbols* (make-hash-table))
+(defvar *external-symbols* (make-hash-table))
+(defvar *symbol-name-alias* (make-hash-table :test #'equalp))
+(defvar *kind-name-alias* (make-hash-table))
 
 (defun get-date ()
   (multiple-value-bind (second minute hour date month year day-of-week dst-p tz)
@@ -230,17 +232,17 @@
                                        &rest keys
                                        &key include-slot-definitions-p
                                        &allow-other-keys)
-  "@arg[packages]{List of package designators.
+  "@argument[packages]{List of package designators.
      Documentation will be generated for these packages.}
-   @arg[directory]{A pathname specifying a directory.
+   @argument[directory]{A pathname specifying a directory.
      The output file will be written to this directory, which must already
      exist.}
-   @arg[include-slot-definitions-p]{A boolean.}
-   @arg[keys]{Extra parameters for stylesheets.}
-   Extracts docstrings from @code{packages} and writes them in XML syntax
-   to .atdoc.xml in the specified directory.
+   @argument[include-slot-definitions-p]{A boolean.}
+   @argument[keys]{Extra parameters for stylesheets.}
+   Extracts docstrings from @arg{packages} and writes them in XML syntax
+   to @file{.atdoc.xml} in the specified directory.
 
-   With @code{include-slot-definitions-p}, class documentation will include
+   With @arg{include-slot-definitions-p}, class documentation will include
    a list of direct slots.
 
    Extra parameters will be inserted as attributes on the root element."
@@ -480,7 +482,7 @@
   (when (and (documentation sym 'type)
              (not (find-class sym nil)))
     (emit-type sym))
-  (if (or (gethash sym *atdoc-external-symbols*)
+  (if (or (gethash sym *external-symbols*)
           (and (not (boundp sym))
                (not (fboundp sym))
                (not (find-class sym nil))
@@ -505,7 +507,11 @@
 
 (defun emit-package (package other-packages)
   (cxml:with-element "package"
-    (cxml:attribute "name" (string-downcase (package-name package)))
+    (let* ((name (string-downcase (package-name package)))
+           (alias (gethash name *symbol-name-alias*)))
+      (if alias
+          (cxml:attribute "name" alias)
+          (cxml:attribute "name" name)))
     (cxml:attribute "id" (string-downcase (package-name package)))
     (emit-docstring package (or (documentation package t)
                                 "no documentation string found"))
@@ -517,27 +523,37 @@
         (when (internalp sym package other-packages)
           (handle-symbol sym package other-packages))))))
 
-(defun emit-variable (name)
-  (cxml:with-element "variable-definition"
-    (name name "variable")
-;    (cxml:attribute "value" (format nil "~A" (symbol-value name)))
-    (emit-docstring name (documentation name 'variable))))
-
-(defun emit-type (name)
-  (cxml:with-element "type-definition"
-    (name name "type")
-    (emit-docstring name (documentation name 'type))))
-
 (defun emit-symbol (name)
   (cxml:with-element "symbol-definition"
     (name name "symbol")
-    (if (gethash name *atdoc-external-symbols*)
-        (emit-docstring name (gethash name *atdoc-external-symbols*))
-        (emit-docstring name "no documentation string found"))))
+    (cxml:attribute "kind" "symbol")
+    (let ((alias (gethash name *kind-name-alias*)))
+      (if alias
+          (cxml:attribute "kind-name" alias)
+          (cxml:attribute "kind-name" "Symbol")))
+    (let ((docstring (gethash name *external-symbols*)))
+      (if docstring
+          (emit-docstring name docstring)
+          (emit-docstring name "no documentation string found")))))
+
+(defun emit-variable (name)
+  (cxml:with-element "variable-definition"
+    (name name "var")
+    (cxml:attribute "kind" "var")
+    (let ((alias (gethash name *kind-name-alias*)))
+      (if alias
+          (cxml:attribute "kind-name" alias)
+          (cxml:attribute "kind-name" "Variable")))
+    (emit-docstring name (documentation name 'variable))))
 
 (defun emit-function (name)
   (cxml:with-element "function-definition"
     (name name "fun")
+    (cxml:attribute "kind" "fun")
+    (let ((alias (gethash name *kind-name-alias*)))
+      (if alias
+          (cxml:attribute "kind-name" alias)
+          (cxml:attribute "kind-name" "Function")))
     (cxml:with-element "lambda-list"
       (dolist (arg (lambda-list (symbol-function name)))
         (cxml:with-element "elt"
@@ -549,7 +565,12 @@
 
 (defun emit-generic-function (name)
   (cxml:with-element "generic-definition"
-    (name name "generic")
+    (name name "fun")
+    (cxml:attribute "kind" "fun")
+    (let ((alias (gethash name *kind-name-alias*)))
+      (if alias
+          (cxml:attribute "kind-name" alias)
+          (cxml:attribute "kind-name" "Generic Function")))
     (cxml:with-element "lambda-list"
       (dolist (arg (lambda-list (symbol-function name)))
         (cxml:with-element "elt"
@@ -561,7 +582,12 @@
 
 (defun emit-operator (name)
   (cxml:with-element "operator-definition"
-    (name name "operator")
+    (name name "fun")
+    (cxml:attribute "kind" "fun")
+    (let ((alias (gethash name *kind-name-alias*)))
+      (if alias
+          (cxml:attribute "kind-name" alias)
+          (cxml:attribute "kind-name" "Special Operator")))
     (cxml:with-element "lambda-list"
       (dolist (arg (lambda-list (symbol-function name)))
         (cxml:with-element "elt"
@@ -573,7 +599,12 @@
 
 (defun emit-macro (name)
   (cxml:with-element "macro-definition"
-    (name name "macro")
+    (name name "fun")
+    (cxml:attribute "kind" "fun")
+    (let ((alias (gethash name *kind-name-alias*)))
+      (if alias
+          (cxml:attribute "kind-name" alias)
+          (cxml:attribute "kind-name" "Macro")))
     (cxml:with-element "lambda-list"
       (dolist (arg (lambda-list (macro-function name)))
         (cxml:with-element "elt"
@@ -582,6 +613,16 @@
                                       :escape nil
                                       :case :downcase)))))
     (emit-docstring name (documentation name 'function))))
+
+(defun emit-type (name)
+  (cxml:with-element "type-definition"
+    (name name "type")
+    (cxml:attribute "kind" "type")
+    (let ((alias (gethash name *kind-name-alias*)))
+      (if alias
+          (cxml:attribute "kind-name" alias)
+          (cxml:attribute "kind-name" "Type")))
+    (emit-docstring name (documentation name 'type))))
 
 (defun emit-slot (slot-def)
   (cxml:with-element "slot"
@@ -616,6 +657,11 @@
 (defun emit-class (class other-packages)
   (cxml:with-element "class-definition"
     (name (class-name class) "class")
+    (cxml:attribute "kind" "class")
+    (let ((alias (gethash (class-name class) *kind-name-alias*)))
+      (if alias
+          (cxml:attribute "kind-name" alias)
+          (cxml:attribute "kind-name" "Class")))
     (closer-mop:finalize-inheritance class)
     (cxml:with-element "cpl"
       (dolist (super (cdr (clean-class-list (closer-mop:class-precedence-list class))))
@@ -638,7 +684,12 @@
 
 (defun emit-systemclass (class other-packages)
   (cxml:with-element "systemclass-definition"
-    (name (class-name class) "systemclass")
+    (name (class-name class) "class")
+    (cxml:attribute "kind" "class")
+    (let ((alias (gethash (class-name class) *kind-name-alias*)))
+      (if alias
+          (cxml:attribute "kind-name" alias)
+          (cxml:attribute "kind-name" "System Class")))
     (cxml:with-element "cpl"
       (dolist (super (cdr (clean-class-list (closer-mop:class-precedence-list class))))
         (cxml:with-element "superclass"
@@ -663,7 +714,12 @@
 
 (defun emit-struct (class other-packages)
   (cxml:with-element "struct-definition"
-    (name (class-name class) "struct")
+    (name (class-name class) "class")
+    (cxml:attribute "kind" "class")
+    (let ((alias (gethash (class-name class) *kind-name-alias*)))
+      (if alias
+          (cxml:attribute "kind-name" alias)
+          (cxml:attribute "kind-name" "Struct")))
     #+sbcl (sb-pcl:finalize-inheritance class)
     #+allegro (unless (typep class 'structure-class)
                 (aclmop:finalize-inheritance class))
@@ -691,7 +747,12 @@
 
 (defun emit-condition (class other-packages)
   (cxml:with-element "condition-definition"
-    (name (class-name class) "condition")
+    (name (class-name class) "class")
+    (cxml:attribute "kind" "class")
+    (let ((alias (gethash (class-name class) *kind-name-alias*)))
+      (if alias
+          (cxml:attribute "kind-name" alias)
+          (cxml:attribute "kind-name" "Condition")))
     (closer-mop:finalize-inheritance class)
     (cxml:with-element "cpl"
       (dolist (super (cdr (clean-class-list (closer-mop:class-precedence-list class))))
@@ -849,7 +910,7 @@
          (equal qname "class")
          (equal qname "systemclass")
          (equal qname "struct")
-         (equal qname "condition")
+         (equal qname "condition") (equal qname "see-condition")
          (equal qname "slot")
          (equal qname "see")
          (equal qname "see-variable")
@@ -862,34 +923,28 @@
          (equal qname "see-class")
          (equal qname "see-systemclass")
          (equal qname "see-struct")
-         (equal qname "see-condition")
          (equal qname "see-signalled")
          (equal qname "see-slot")
          (equal qname "see-constructor"))
      (setf (current-name handler) qname)
      (setf (current-kind handler)
            (case (intern qname :atdoc)
-             (|var| "variable")
-             ((|fun| |class| |systemclass| |type| |struct| |condition|) qname)
-             (|gen| "generic")
-             (|macro|   "macro")
-             (|symbol|  "symbol")
-             (|operator| "operator")
-             ((|see| |slot|) "fun")
-             (|see-variable|    "variable")
-             (|see-function|    "fun")
-             (|see-generic|     "generic")
-             (|see-operator|    "operator")
-             (|see-macro|       "macro")
+             ((|symbol| |see-symbol|)           "symbol")
+             ((|var|    |see-variable|)         "var")
+             ((|fun|    |see-function|)         "fun")
+             ((|gen|    |see-generic|)          "fun")
+             ((|macro|  |see-macro|)            "fun")
+             (|operator|                        "fun")
+             ((|class| |see-class|)             "class")
+             ((|systemclass| |see-systemclass|) "class")
+             ((|struct| |see-struct|)           "class")
+             ((|condition| |see-condition|)     "class")
+             ((|see| |slot|)    "fun")
+             (|see-operator|    "fun")
              (|see-type|        "type")
-             (|see-symbol|      "symbol")
-             (|see-class|       "class")
-             (|see-systemclass| "systemclass")
-             (|see-struct|      "struct")
-             (|see-condition|   "condition")
-             (|see-signalled|   "condition")
+             (|see-signalled|   "class")
              (|see-constructor| "fun")
-             (|see-slot|        "generic")))
+             (|see-slot|        "fun")))
      (setf (current-attributes handler) attrs)
      (setf (current-text handler) ""))
     (t
@@ -912,7 +967,9 @@
                (munged-name
                  (handler-case
                    (munge-name
-                     (let ((*package* (docstring-package handler)))
+                     ;; The rebinding of *package* causes a bug.
+                     (let (;(*package* (docstring-package handler))
+                          )
                        (read-from-string text))
                      (current-kind handler))
                    (error (c)

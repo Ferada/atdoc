@@ -53,13 +53,18 @@
     @subheading{Mailing List}
     No mailing list.
 
-    @subheading{Download and Installation}
-    Download an
-    @a[http://www.lichteblau.com/atdoc/download/]{@em{atdoc} tarball},
-    or get it from
-    git: http://www.lichteblau.com/git/atdoc.git
-    (@a[http://www.lichteblau.com/git/?p=atdoc.git;a=summary]{gitweb})
+    @subheading{Download}
+    Get the source code of this fork of @em{ATDOC} from the git repository at
+    @a[http://gitorious.org/lisp-projects/atdoc]{gitorious.org/lisp-projects/atdoc}
+    or download a tarball master from the repository from this link
+    @a[http://gitorious.org/lisp-projects/atdoc/archive-tarball/master]{gitorious.org/lisp-projects/atdoc/archive-tarball/master}
 
+    Get a tarball of the original version from
+    @a[http://www.lichteblau.com/atdoc/download/]{http://www.lichteblau.com/atdoc/download/},
+    or get it from git at
+    @a[http://www.lichteblau.com/git/?p=atdoc.git;a=summary]{http://www.lichteblau.com/git/atdoc.git}
+
+    @subheading{Installation}
     ASDF is used for compilation. Register the @code{.asd} file, e. g. by
     symlinking it,
     then compile @em{atdoc} using @code{asdf:load-system}.
@@ -67,118 +72,168 @@
   $ ln -sf `pwd`/atdoc.asd /path/to/your/registry/
   * (asdf:load-system :atdoc)
     @end{pre}
-    @subheading{Source Code}
-    The source code is available from
-    git: http://www.lichteblau.com/git/atdoc.git
-    (@a[http://www.lichteblau.com/git/?p=atdoc.git;a=summary]{gitweb})
-
     @subheading{Dependencies}
-    @em{atdoc} needs Closure XML, Split sequence, Slime's swank, Xuriella XSLT,
+    @em{ATDOC} needs Closure XML, @a[http://www.crategus.com/books/split-sequence/pages/split-sequence.html]{Split sequence}, Slime's swank, @a[http://www.crategus.com/books/xuriella/pages/xuriella.html]{Xuriella XSLT},
     @a[http://www.crategus.com/books/closer-mop/pages/closer-mop.html]{Closer-MOP},
     and their dependencies.
   @end{section}
   @begin[Output formats]{section}
-    @em{atdoc} can currently generate documentation in these formats:
+    @em{ATDOC} can currently generate documentation in these formats:
     @begin{itemize}
       @item{HTML, one page for each definition, with extra pages containing the
         package and overview text for its definitions 
-        (@a[http://www.lichteblau.com/atdoc/example/multi-page/index.html]{example})}
+        (@a[http://www.crategus.com/books/atdoc/example/index.html]{example multi-pages})}
       @item{HTML, all on one page 
-        (@a[http://www.lichteblau.com/atdoc/example/single-page/index.html]{example})}
+        (@a[http://www.crategus.com/books/atdoc/example/single-page/index.html]{example single-page})}
       @item{TeX documents, and}
       @item{Info files.}
     @end{itemize}
+  The output formats TeX and Info files are not supported with the current
+  version of the fork of @em{ATDOC}.
   @end{section}
   @begin[Sample Documentation]{section}
     As an example, code from the book Lisp (3rd edition) by Winston and Horn is
     chosen. You can find the code with an ASDF definition in the example/
-    subdirectory of the @em{atdoc} sources so that you can easily compile it
+    subdirectory of the @em{ATDOC} sources so that you can easily compile it
     yourself. The code included is the Blocks World, from chapters 21 (\"The
     Blocks World with Classes and Methods\") and 22 (\"Answering Questions about
     Goals\"). Note that the source code from the book has been taken from the
     publically available lisp3 tarball and is covered by its own license,
-    different from the license of @em{atdoc}.
+    different from the license of @em{ATDOC}.
 
-    The examples linked above were generated using:
+    The multi-page example linked above was generated using:
     @begin{pre}
-  (atdoc:generate-html-documentation
+ (let* ((base (asdf:component-pathname (asdf:find-system :blocks-world)))
+        (output-directory (merge-pathnames \"example/\" base)))
+   (ensure-directories-exist output-directory)
+   (atdoc:generate-html-documentation
      '(:blocks-world :blocks-world-goals)
      output-directory
-     :index-title \"Blocks World API reference\"
-     :heading \"The Blocks World\"
-     :single-page-p t      ;optional
-     :include-internal-symbols-p nil)
-    @end{pre}
-    and
-    @begin{pre}
-  (atdoc:generate-latex-documentation
-     '(:blocks-world :blocks-world-goals)
-     output-directory
-     :title \"The Blocks World\")
-
-  (atdoc:generate-info-documentation
-     '(:blocks-world :blocks-world-goals)
-     output-directory
-     :name \"blocks-world\"
-     :title \"The Blocks World\")
+     :author \"Crategus\"
+     :author-url \"http://www.crategus.com\"
+     :index-title \"blocks-world API documentation\"
+     :heading \"blocks-world\"
+     :css \"crategus.css\"
+     :logo nil
+     :single-page-p nil
+     :include-slot-definitions-p t
+     :include-internal-symbols-p nil))
     @end{pre}
   @end{section}
   @begin[Writing a documentation string]{section}
-    Here is an example of what the documentation of the Lisp function
-    @a[http://www.lispworks.com/documentation/HyperSpec/Body/f_pr_obj.htm]{print-object}
-    could look like using @em{atdoc}:
+    Here is a complete example of what the documentation of the Lisp function
+    @a[http://www.lispworks.com/documentation/HyperSpec/Body/f_cmp.htm]{@sym{compile}}
+    could look like using @em{ATDOC}. The output from @em{ATDOC} is shown at
+    @a[http://www.crategus.com/books/common-lisp/pages/common-lisp_fun_compile.html]{@sym{compile} with @em{atdoc}}.
     @begin{pre}
-  @@argument[object]{an object@}
-  @@argument[stream]{a @@class{stream@}@}
-  @@return{@@code{object@}@}
+  @@argument[name]{a @@term{function name@}, or @@sym{nil@}.@}
+  @@argument[definition]{a @@term{lambda expression@} or a @@term{function@}. The
+    default is the function definition of @@arg{name@} if it names a
+    @@term{function@}, or the @@term{macro function@} of @@arg{name@} if it names a
+    @@term{macro@}. The consequences are undefined if no @@term{definition@} is
+    supplied when the @@term{name@} is @@sym{nil@}.@}
+  @@return{@@arg{function@} -- the @@term{function-name@}, or a
+    @@term{compiled function@}.@@br{@}
+    @@arg{warnings-p@} -- a @@term{generalized boolean@}.@@br{@}
+    @@arg{failure-p@} -- a @@term{generalized boolean@}.@}
+  @@short{Compiles an @@term{interpreted function@}.@}
 
-  @@short{The generic function @@fun{print-object@} writes the printed
-  representation of @@code{object@} to @@code{stream@}.@}
+  @@sym{compile@} produces a @@term{compiled function@} from @@arg{definition@}. If
+  the @@arg{definition@} is a @@term{lambda expression@}, it is coerced to a
+  @@term{function@}. If the @@arg{definition@} is already a @@term{compiled
+  function@}, @@sym{compile@} either produces that function itself (i. e., is an
+  identity operation) or an equivalent function.
 
-  The function print-object is called by the Lisp printer; it should not
-  be called by the user.
+  If the @@arg{name@} is @@sym{nil@}, the resulting @@term{compiled function@} is
+  returned directly as the @@term{primary value@}. If a @@term{non-nil@} @@arg{name@}
+  is given, then the resulting @@term{compiled function@} replaces the existing
+  @@term{function@} definition of @@arg{name@} and the @@arg{name@} is returned as the
+  @@term{primary value@}; if @@arg{name@} is a @@term{symbol@} that names a
+  @@term{macro@}, its @@term{macro function@} is updated and the @@arg{name@} is
+  returned as the @@term{primary value@}.
 
-  (...)
+  @@term{Literal objects@} appearing in code processed by the @@sym{compile@}
+  function are neither copied nor @@term{coalesced@}. The code resulting from the
+  execution of @@sym{compile@} references @@term{objects@} that are @@fun{eql@} to the
+  corresponding @@term{objects@} in the source code.
 
-  @@see{pprint-fill@}
-  @@see{pprint-logical-block@}
-  (...)
+  @@sym{compile@} is permitted, but not required, to @@term{establish a handler@}
+  for @@term{conditions@} of @@term{type@} @@condition{error@}. For example, the
+  @@term{handler@} might issue a warning and restart compilation from some
+  @@term{implementation-dependent@} point in order to let the compilation proceed
+  without manual intervention.
+
+  The @@term{secondary value@}, @@arg{warnings-p@}, is false if no @@term{conditions@}
+  of @@term{type@} @@condition{error@} or @@condition{warning@} were detected by the
+  compiler, and true otherwise.
+
+  The @@term{tertiary value@}, @@arg{failure-p@}, is false if no @@term{conditions@}
+  of @@term{type@} @@condition{error@} or @@condition{warning@} (other than
+  @@condition{style-warning@}) were detected by the compiler, and true otherwise.
+  @@begin[Examples]{dictionary@}
+    @@begin{pre@}
+(defun foo () \"bar\") =>  FOO
+(compiled-function-p #'foo) =>  implementation-dependent
+(compile 'foo) =>  FOO 
+(compiled-function-p #'foo) =>  true
+(setf (symbol-function 'foo)
+      (compile nil '(lambda () \"replaced\"))) =>  #<Compiled-Function>
+(foo) =>  \"replaced\"
+    @@end{pre@}
+  @@end{dictionary@}
+  @@begin[Affected By]{dictionary@}
+    @@var{*error-output*@}, @@var{*macroexpand-hook*@}.
+
+    The presence of macro definitions and proclamations.
+  @@end{dictionary@}
+  @@begin[Exceptional Situations]{dictionary@}
+    The consequences are undefined if the @@term{lexical environment@} surrounding
+    the @@term{function@} to be compiled contains any @@term{bindings@} other than
+    those for @@term{macros@}, @@term{symbol macros@}, or @@term{declarations@}.
+
+    For information about errors detected during the compilation process, see
+    Section 3.2.5 (Exceptional Situations in the Compiler).
+  @@end{dictionary@}
+  @@see-function{compile-file@}
     @end{pre}
     Note that parts of the documentation strings are just documentation text,
     which will be included in a section \"Details\" of the page. Other parts,
     however, are not part of the actual text, and will be extracted from the
     documentation string as the first step of processing it. In this case,
-    @code{@@arg}, @code{@@return}, and @code{@@see} are the tags that will be
-    removed. All @code{@@arg} tags will be collected into a section about the
-    function's arguments, all @code{@@see} tags will be collected together will
-    all @code{@@fun} and @code{@@class} references into a \"See also\" section.
+    @code{@@argument}, @code{@@return}, and @code{@@see-function} are the tags
+    that will be removed. All @code{@@argument} tags will be collected into a
+    section about the function's arguments, all @code{@@see-function} tags will
+    be collected into a \"See also\" section.
 
     @b{Tags for use only in the docstring of a package itself}
     @begin{table}
       @entry[@section[title@]{body}]{Generates a sub-heading called
         @code{title} with @code{body} as the content. A table of contents will
         be generated at the top of the package pages listing the sections.}
-      @entry[@aboutfun{name}]{Insert the lambda list of function @code{name} and
+      @entry[@about-function{name}]{Insert the lambda list of function
+         @code{name} and its short description which is the contents of
+         @code{@@short} in its docstring.}
+      @entry[@about-macro{name}]{Insert the lambda list of macro @code{name} and
         its short description which is the contents of @code{@@short} in its
         docstring.}
-      @entry[@aboutmacro{name}]{Insert the lambda list of macro @code{name} and
-        its short description which is the contents of @code{@@short} in its
-        docstring.}
-      @entry[@aboutclass{name}]{Insert the name of class @code{name} and its
+      @entry[@about-class{name}]{Insert the name of class @code{name} and its
         short description which is the contents of @code{@@short} in its
         docstring.}
-      @entry[@abouttype{name}]{Insert the name of type @code{name} and its
+      @entry[@about-type{name}]{Insert the name of type @code{name} and its
         short description which is the contents of @code{@@short} in its
         docstring.}
     @end{table}
     @b{Tags that will be extracted into their own sections}
     @begin{table}
+      @entry[@syntax[name@]{description}]{Will be moved into the \"Syntax\"
+        section.}
       @entry[@argument[name@]{description}]{Will be moved into the \"Arguments\"
         section.}
       @entry[@return{description}]{Will be moved into the \"Return Value\"
         section.}
-      @entry[@see{name}]{Link to the function named name. Syntactically like
-      @code{@@fun}, this tag will be moved into the \"See also\" section.}
+      @entry[@see-function{name}]{Link to the function named @code{name}.
+        Syntactically like @code{@@fun}, this tag will be moved into the
+         \"See also\" section.}
       @entry[@see-slot{name}]{Similar to @code{@@see}, this tag specifies a slot
       reader function for the class it is used in, and will be moved into a
       \"Slot Access Functions\" sections. In addition, a section \"Inherited
@@ -190,7 +245,8 @@
     @b{Tags for use in the documentation text}
     @begin{table}
       @entry[@short{text}]{Copies text into the output normally, but will also
-        extract it for use with @code{@@aboutfun}, @code{@@aboutclass} ... }
+        extract it for use with @code{@@about-function}, @code{@@about-class}
+        ... }
       @entry[@code{text}]{In-line Lisp code @code{text}, will be formatted using
         a fixed-width font.}
       @entry[@a[href=\"URL\"@]{name}]{Hyperlink. This tag accepts an argument,
@@ -198,13 +254,13 @@
       @entry[@itemize, @item]{An unordered list like <ul> and <li>}
       @entry[@enumerate, @item]{An ordered list like <ol> and >li>}
       @entry[@table, @entry]{A definition list like <dl>, <dt>, <dd>}
-      @entry[@fun{name}]{Link to the function named name, read as a symbol into
-        the current package (qualify with a package name to reference other
-        packages included in the same documentation).}
-      @entry[@class{name}]{Link to the class named name. Works like
+      @entry[@fun{name}]{Link to the function named @code{name}, read as a
+        symbol into the current package (qualify with a package name to
+        reference other packages included in the same documentation).}
+      @entry[@class{name}]{Link to the class named @code{name}. Works like
         @code{@@fun}.}
-      @entry[@variable{name}]{Link to the special variable named name. Works
-        like @code{@@fun}.}
+      @entry[@variable{name}]{Link to the special variable named @code{name}.
+        Works like @code{@@fun}.}
     @end{table}
     @b{Tags that are passed through to HTML}
     @begin{table}
@@ -216,16 +272,16 @@
     @end{table}
   @end{section}
   @begin[The At-sign syntax]{section}
-    @em{atdoc} looks for markup tags start with an at-sign @@, in either a long
+    @em{ATDOC} looks for markup tags start with an at-sign @@, in either a long
     or a short form.  The short form looks like this:
     @begin{pre}
-  @@return{the computed result@}
+ @@return{the computed result@}
     @end{pre}
     The long form can be convenient for multiple lines of text:
     @begin{pre}
-  @@begin{return@}
-  the computed result
-  @@end{return@}
+ @@begin{return@}
+   the computed result
+ @@end{return@}
     @end{pre}
     Except for the additional whitespace due to line breaks in the second
     example, the two forms are completely interchangeable. Behind the scenes,
@@ -235,7 +291,7 @@
     Both forms take an optional argument, written with brackets. To pass a
     hyperlink use the form:
     @begin{pre}
-  @@a[http://www.cliki.net]{Cliki@}
+ @@a[http://www.cliki.net]{Cliki@}
     @end{pre}
     This form gets translated into
     @code{<a a=\"http://www.cliki.net\">Cliki</a>}, until the
@@ -243,9 +299,9 @@
     
     A second example is
     @begin{pre}
-  @@begin[Title]{section@}
-  body
-  @@end{section@}
+ @@begin[Title]{section@}
+   body
+ @@end{section@}
     @end{pre}
     which gets translated into @code{<section section=\"Title\">body</section>}.
 
@@ -265,18 +321,17 @@
     older function called generate-documentation, which in now an
     alias for generate-html-documentation.
 
-    @aboutfun{generate-html-documentation}
-    @aboutfun{generate-latex-documentation}
-    @aboutfun{generate-info-documentation}
-    @aboutfun{generate-documentation}
-    @end{section}
-
-    @begin[Generating unformatted XML]{section}
+    @about-function{generate-html-documentation}
+    @about-function{generate-latex-documentation}
+    @about-function{generate-info-documentation}
+    @about-function{generate-documentation}
+  @end{section}
+  @begin[Generating unformatted XML]{section}
     Power users might want to extract docstrings into XML and then
     send that XML through their own XSLT stylesheets.  The following
     function can be used for that purpose.
 
-    @aboutfun{extract-documentation}
+    @about-function{extract-documentation}
   @end{section}
 ")
 
@@ -308,11 +363,14 @@
   @argument[directory]{A pathname specifying a directory.
     All output files and temporary data will be written
     to this directory, which must already exist.}
-  @argument[author]{}
-  @argument[author-url]{}
-  @argument[date]{}
+  @argument[author]{A string which holds the author of the package. The author
+    will be added to the footer of each HTML page.}
+  @argument[author-url]{A string which holds an url for the author.}
+  @argument[date]{A date which is added to the footer of each HTML page. If
+     @code{nil}, which is the default, the date of generation of the
+     documentation will be added to the footer on each HTML page.}
   @argument[index-title]{This string will be
-     used as the title of the main page, index.html.
+     used as the title of the main page, @file{index.html}.
      (Other pages will be named according to the object they are
      documenting.)}
   @argument[heading]{This string will be used as a visible title on top of
@@ -320,25 +378,25 @@
    @argument[logo]{Deprecated.}
    @argument[css]{A pathname or string pointing to a cascading stylesheet (CSS)
      file. This file will be copied to the target directory under the name
-     index.css. If this argument is a string and does not start with a dot, it
-     will be taken as namestring relative to the atdoc/css  directory.}
+     @file{index.css}. If this argument is a string and does not start with a
+     dot, it will be taken as namestring relative to the atdoc/css  directory.}
    @argument[single-page-p]{A boolean.}
    @argument[include-slot-definitions-p]{A boolean.}
    @argument[include-internal-symbols-p]{A boolean.}
-   @return{The pathname of the generated file index.xml.}
-   Generates HTML documentation for @code{packages}.
+   @return{The pathname of the generated file @file{index.xml}.}
+   @short{Generates HTML documentation for @arg{packages}.}
 
-   With @code{single-page-p}, all documentation is assembled as a single
-   page called index.html.  Otherwise, index.html will include only
-   a symbol index and a summary of each package, with links to other pages.
+   With @arg{single-page-p}, all documentation is assembled as a single
+   page called @file{index.html}.  Otherwise, @file{index.html} will include
+   only a symbol index and a summary of each package, with links to other pages.
 
-   With include-slot-definitions-p, pages for symbols that are not exported
-   will be included, so that documentation for exported symbols can safely
-   refer to internal pages (but internal symbols will not be included in
+   With @arg{include-slot-definitions-p}, pages for symbols that are not
+   exported will be included, so that documentation for exported symbols can
+   safely refer to internal pages (but internal symbols will not be included in
    the symbol index automatically).  This option has no effect if
-   single-page-p is enabled.
+   @arg{single-page-p} is enabled.
 
-   With @code{include-slot-definition}, class documentation will include
+   With @arg{include-slot-definition}, class documentation will include
    a list of direct slots.")
 
 (setf (documentation 'generate-latex-documentation 'function)
@@ -351,7 +409,7 @@
   @argument[include-slot-definitions-p]{A boolean.}
   @argument[run-tex-p]{A boolean.}
   @return{The pathname of the generated file documentation.pdf, or nil.}
-   Generates TeX documentation for @code{packages}.
+  @short{Generates TeX documentation for @code{packages}.}
 
   With @arg{run-tex-p} (the default), pdflatex is run automatically to
   generate a PDF file.

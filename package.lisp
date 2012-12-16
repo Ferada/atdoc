@@ -4,7 +4,9 @@
 
 (defpackage :atdoc
   (:use :cl)
-  (:export #:*atdoc-external-symbols*
+  (:export #:*external-symbols*
+           #:*kind-name-alias*
+           #:*symbol-name-alias*
            #:get-slot-from-name
            #:generate-html-documentation
 	   #:generate-latex-documentation
