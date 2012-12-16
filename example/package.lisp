@@ -58,7 +58,7 @@
     @end{section}
     @begin[Example]{section}
     In the initial configuration, where all blocks have been placed directly
-    on the table (not shown), @fun{put-on} will move the objects like this:
+    on the table (not shown), @gen{put-on} will move the objects like this:
     @begin{pre}
 BLOCKS-WORLD> (put-on b1 b2)
 Move hand to pick up B1 at location (1 2).
@@ -74,35 +74,35 @@ T
     Movable blocks than can be moved onto load supporting blocks.  Using
     multiple inheritance, there are also blocks that can do both.
 
-    @aboutclass{basic-block}
-    @aboutclass{load-bearing-block}
-    @aboutclass{movable-block}
+    @about-class{basic-block}
+    @about-class{load-bearing-block}
+    @about-class{movable-block}
     @end{section}
     @begin[Block properties]{section}
     Slot readers:
 
-    @aboutfun{block-name}
-    @aboutfun{block-position}
-    @aboutfun{block-width}
-    @aboutfun{block-height}
-    @aboutfun{block-supported-by}
-    @aboutfun{block-support-for}
+    @about-generic{block-name}
+    @about-generic{block-position}
+    @about-generic{block-width}
+    @about-generic{block-height}
+    @about-generic{block-supported-by}
+    @about-generic{block-support-for}
     @end{section}
     @begin[Concrete block classes]{section}
     These are the blocks found in our world:
 
-    @aboutclass{table}
-    @aboutclass{brick}
-    @aboutclass{wedge}
-    @aboutclass{ball}
+    @about-class{table}
+    @about-class{brick}
+    @about-class{wedge}
+    @about-class{ball}
     @end{section}
     @begin[The hand]{section}
     The hand is movable.  It can hold at most one block.
 
-    @aboutclass{hand}
-    @aboutfun{hand-name}
-    @aboutfun{hand-position}
-    @aboutfun{hand-grasping}
+    @about-class{hand}
+    @about-function{hand-name}
+    @about-function{hand-position}
+    @about-function{hand-grasping}
     @end{section}"))
 
 (defpackage :blocks-world-goals
@@ -124,7 +124,6 @@ T
     @a[http://www.amazon.com/Lisp-3rd-Patrick-Winston/dp/0201083191]{
       Lisp (3rd edition)}
     by Winston and Horn.
-
     @begin[Lots of undocumented functions]{section}
     I was too lazy to document this package, which is why all its functions
     have a big fat \"undocumented\" warning.
