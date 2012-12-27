@@ -32,7 +32,12 @@
 
 (defvar *external-symbols* (make-hash-table))
 (defvar *symbol-name-alias* (make-hash-table :test #'equalp))
-(defvar *kind-name-alias* (make-hash-table))
+(defvar *function-name-alias* (make-hash-table))
+(defvar *class-name-alias* (make-hash-table))
+(defvar *variable-name-alias* (make-hash-table))
+(defvar *type-name-alias* (make-hash-table))
+
+(defvar *actual-symbol* nil)
 
 (defun get-date ()
   (multiple-value-bind (second minute hour date month year day-of-week dst-p tz)
@@ -457,6 +462,7 @@
 
 (defun handle-symbol (sym package other-packages)
   (declare (ignore package))
+  (setf *actual-symbol* sym)
   (when (boundp sym)
     (emit-variable sym))
   (when (fboundp sym)
@@ -527,7 +533,7 @@
   (cxml:with-element "symbol-definition"
     (name name "symbol")
     (cxml:attribute "kind" "symbol")
-    (let ((alias (gethash name *kind-name-alias*)))
+    (let ((alias (gethash name *symbol-name-alias*)))
       (if alias
           (cxml:attribute "kind-name" alias)
           (cxml:attribute "kind-name" "Symbol")))
@@ -540,7 +546,7 @@
   (cxml:with-element "variable-definition"
     (name name "var")
     (cxml:attribute "kind" "var")
-    (let ((alias (gethash name *kind-name-alias*)))
+    (let ((alias (gethash name *variable-name-alias*)))
       (if alias
           (cxml:attribute "kind-name" alias)
           (cxml:attribute "kind-name" "Variable")))
@@ -550,7 +556,7 @@
   (cxml:with-element "function-definition"
     (name name "fun")
     (cxml:attribute "kind" "fun")
-    (let ((alias (gethash name *kind-name-alias*)))
+    (let ((alias (gethash name *function-name-alias*)))
       (if alias
           (cxml:attribute "kind-name" alias)
           (cxml:attribute "kind-name" "Function")))
@@ -567,7 +573,7 @@
   (cxml:with-element "generic-definition"
     (name name "fun")
     (cxml:attribute "kind" "fun")
-    (let ((alias (gethash name *kind-name-alias*)))
+    (let ((alias (gethash name *function-name-alias*)))
       (if alias
           (cxml:attribute "kind-name" alias)
           (cxml:attribute "kind-name" "Generic Function")))
@@ -584,7 +590,7 @@
   (cxml:with-element "operator-definition"
     (name name "fun")
     (cxml:attribute "kind" "fun")
-    (let ((alias (gethash name *kind-name-alias*)))
+    (let ((alias (gethash name *function-name-alias*)))
       (if alias
           (cxml:attribute "kind-name" alias)
           (cxml:attribute "kind-name" "Special Operator")))
@@ -601,7 +607,7 @@
   (cxml:with-element "macro-definition"
     (name name "fun")
     (cxml:attribute "kind" "fun")
-    (let ((alias (gethash name *kind-name-alias*)))
+    (let ((alias (gethash name *function-name-alias*)))
       (if alias
           (cxml:attribute "kind-name" alias)
           (cxml:attribute "kind-name" "Macro")))
@@ -618,7 +624,7 @@
   (cxml:with-element "type-definition"
     (name name "type")
     (cxml:attribute "kind" "type")
-    (let ((alias (gethash name *kind-name-alias*)))
+    (let ((alias (gethash name *type-name-alias*)))
       (if alias
           (cxml:attribute "kind-name" alias)
           (cxml:attribute "kind-name" "Type")))
@@ -658,7 +664,7 @@
   (cxml:with-element "class-definition"
     (name (class-name class) "class")
     (cxml:attribute "kind" "class")
-    (let ((alias (gethash (class-name class) *kind-name-alias*)))
+    (let ((alias (gethash (class-name class) *class-name-alias*)))
       (if alias
           (cxml:attribute "kind-name" alias)
           (cxml:attribute "kind-name" "Class")))
@@ -686,7 +692,7 @@
   (cxml:with-element "systemclass-definition"
     (name (class-name class) "class")
     (cxml:attribute "kind" "class")
-    (let ((alias (gethash (class-name class) *kind-name-alias*)))
+    (let ((alias (gethash (class-name class) *class-name-alias*)))
       (if alias
           (cxml:attribute "kind-name" alias)
           (cxml:attribute "kind-name" "System Class")))
@@ -716,7 +722,7 @@
   (cxml:with-element "struct-definition"
     (name (class-name class) "class")
     (cxml:attribute "kind" "class")
-    (let ((alias (gethash (class-name class) *kind-name-alias*)))
+    (let ((alias (gethash (class-name class) *class-name-alias*)))
       (if alias
           (cxml:attribute "kind-name" alias)
           (cxml:attribute "kind-name" "Struct")))
@@ -749,7 +755,7 @@
   (cxml:with-element "condition-definition"
     (name (class-name class) "class")
     (cxml:attribute "kind" "class")
-    (let ((alias (gethash (class-name class) *kind-name-alias*)))
+    (let ((alias (gethash (class-name class) *class-name-alias*)))
       (if alias
           (cxml:attribute "kind-name" alias)
           (cxml:attribute "kind-name" "Condition")))
@@ -823,7 +829,7 @@
       (cond
         ((null c)
          (when close
-           (error "unexpected end of documentation string"))
+           (error "in ~A: unexpected end of documentation string" *actual-symbol*))
          (return))
         ((eql c #\@)
          (cond
@@ -839,13 +845,13 @@
               (when (equal name "end")
                 (read-char stream)
                 (unless (equal (read-delimited-string stream "}" t) close)
-                  (error "invalid close tag"))
+                  (error "in ~A: invalid close tag" *actual-symbol*))
                 (return))
               (parse-docstring-element stream handler name)))))
         ((eql c #\})
          (when (eq close t)
            (return))
-         (error "unexpected closing brace"))
+         (error "in ~A: unexpected closing brace" *actual-symbol*))
         (t
          (write-char c out))))
     (characters handler (get-output-stream-string out))))
@@ -856,7 +862,7 @@
       for c = (read-char stream nil)
       do
         (when (null c)
-          (error "unexpected end of documentation string"))
+          (error "in ~A: unexpected end of documentation string" *actual-symbol*))
         (when (eql c #\@)
           (cond ((eql (peek-char nil stream nil) #\])
                  (write-char (read-char stream nil) out)
@@ -879,10 +885,32 @@
       (#\{)
 ;;;       (#\space)
 ;;;       (#\: )
-      (t (error "expected opening brace, space, or colon")))
+      (t (error "in ~A: expected opening brace, space, or colon" name)))
     (when (equal name "begin")
       (setf name (read-delimited-string stream "}" t))
       (setf close name))
+
+    (cond
+      ((equal name "section")
+       (parse-docstring-element-section stream handler name arg close))
+      (t
+       (when arg
+         (push (sax:make-attribute :qname name :value arg) attrs))
+       (sax:start-element handler nil name name attrs)
+       (parse-docstring-1 stream handler close)
+       (sax:end-element handler nil name name)))))
+
+(defun munge-name-section (name)
+  (format nil "~A"
+          (cl-ppcre:regex-replace-all "[ /\*%<>]" name "_")))
+
+(defun parse-docstring-element-section (stream handler name arg close)
+  (let ((attrs '()))
+    (push (sax:make-attribute :qname "id"
+                              :value
+                              (munge-name-section (string-downcase arg)))
+
+          attrs)
     (when arg
       (push (sax:make-attribute :qname name :value arg) attrs))
     (sax:start-element handler nil name name attrs)
@@ -934,14 +962,13 @@
              ((|fun|    |see-function|)         "fun")
              ((|gen|    |see-generic|)          "fun")
              ((|macro|  |see-macro|)            "fun")
-             (|operator|                        "fun")
+             ((|operator| |see-operator|)       "fun")
              ((|class| |see-class|)             "class")
              ((|systemclass| |see-systemclass|) "class")
              ((|struct| |see-struct|)           "class")
              ((|condition| |see-condition|)     "class")
+             ((|type| |see-type|)               "type")
              ((|see| |slot|)    "fun")
-             (|see-operator|    "fun")
-             (|see-type|        "type")
              (|see-signalled|   "class")
              (|see-constructor| "fun")
              (|see-slot|        "fun")))

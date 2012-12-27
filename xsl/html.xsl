@@ -157,45 +157,46 @@
           date="{/documentation/@date}"
           keywords="Lisp, Documentation, Package, {@name}">
       <padded>
-    <xsl:if test="count(../package) > 1">
-      <p class="noindent">
-        Up:
-        <a href="../index.html">
-          <xsl:value-of select="/documentation/@index-title"/>
-        </a>
-      </p>
-    </xsl:if>
-    <h1>
-      Package
-      <xsl:value-of select="@name"/>
-    </h1>
-    <xsl:apply-templates select="documentation-string"/>
+        <xsl:if test="count(../package) > 1">
+          <p class="noindent">
+            Up:
+            <a href="../index.html">
+              <xsl:value-of select="/documentation/@index-title"/>
+            </a>
+          </p>
+        </xsl:if>
+        <h1>
+          Package
+          <xsl:value-of select="@name"/>
+        </h1>
+        <xsl:apply-templates select="documentation-string"/>
       </padded>
       <columns>
-    <column width="60%">
-      <padded>
-        <xsl:if test="sections">
-          <div style="margin-left: -30px">
-        <h3>About This Package</h3>
-          </div>
-          <xsl:for-each select="sections/section">
-        <a href="#{generate-id()}" style="font-weight: bold">
-          <xsl:value-of select="@section"/>
-        </a>
-        <br/>
-          </xsl:for-each>
-          <br/>
-          <xsl:apply-templates select="sections"/>
-        </xsl:if>
-      </padded>
-    </column>
-    <column>
-      <h3><a name="index"></a>Exported Symbol Index</h3>
-      <xsl:apply-templates select="external-symbols" mode="symbol-index"/>
-    </column>
+        <column width="60%">
+          <padded>
+            <xsl:if test="sections">
+              <div style="margin-left: -30px">
+                <h3>About This Package</h3>
+              </div>
+              <xsl:for-each select="sections/section">
+                <a href="#{generate-id()}" style="font-weight: bold">
+                  <xsl:value-of select="@section"/>
+                </a>
+                <br/>
+              </xsl:for-each>
+              <br/>
+              <xsl:apply-templates select="sections"/>
+            </xsl:if>
+          </padded>
+        </column>
+        <column>
+          <h3><a name="index"></a>Exported Symbol Index</h3>
+          <xsl:apply-templates select="external-symbols" mode="symbol-index"/>
+        </column>
       </columns>
     </page>
   </xsl:template>
+
 
   <xsl:template match="sections">
     <xsl:for-each select="section">
@@ -207,17 +208,28 @@
     </xsl:for-each>
   </xsl:template>
 
+<!--
+  <xsl:template match="sections">
+    <xsl:for-each select="section">
+      <h2>
+        <a name="@id"/>
+        <xsl:value-of select="@section"/>
+      </h2>
+      <xsl:apply-templates select="section-page"/>
+    </xsl:for-each>
+  </xsl:template>
+-->
 
   <xsl:template match="section-page">
     <page base="../"
           pathname="pages/{@id}.html"
-          title="Section {@name}"
+          title="Section {@section}"
           author="{/documentation/@author}"
           author-url="{/documentation/@author-url}"
           date="{/documentation/@date}"
-          keywords="Lisp, Documentation, Package, {@name}">
+          keywords="Lisp, Documentation, Package, {@section}">
       <padded>
-        <xsl:if test="count(../package) > 1">
+        <xsl:if test="count(../package/sections/section) > 1">
           <p class="noindent">
             Up:
             <a href="../index.html">
@@ -1440,7 +1452,8 @@
     <xsl:for-each select="key('type-by-name', text())">
       <div class="def">
         <a href="{@id}.html">
-          Type
+          <xsl:value-of select="@kind-name"/>
+          <xsl:text> </xsl:text>
           <xsl:value-of select="@name"/>
         </a>
       </div>
