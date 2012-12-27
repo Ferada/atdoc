@@ -285,6 +285,7 @@
                              (ico "lambda.ico")
                              (logo nil)
                              (single-page-p nil)
+                             (paginate-section-p nil)
                              (include-slot-definitions-p nil)
                              (include-internal-symbols-p t))
   "@arg[packages]{List of package designators.
@@ -324,11 +325,13 @@
   (setf include-slot-definitions-p (and include-slot-definitions-p "yes"))
   (setf include-internal-symbols-p (and include-internal-symbols-p "yes"))
   (setf single-page-p (and single-page-p "yes"))
+  (setf paginate-section-p (and paginate-section-p "yes"))
   (extract-documentation packages
                          directory
                          :include-slot-definitions-p include-slot-definitions-p
                          :include-internal-symbols-p include-internal-symbols-p
                          :single-page-p single-page-p
+                         :paginate-section-p paginate-section-p
                          :logo logo
                          :ico ico
                          :index-title index-title
@@ -511,10 +514,13 @@
 
 ;;; ----------------------------------------------------------------------------
 
+(defvar *package-name* nil)
+
 (defun emit-package (package other-packages)
   (cxml:with-element "package"
     (let* ((name (string-downcase (package-name package)))
            (alias (gethash name *symbol-name-alias*)))
+      (setf *package-name* name)
       (if alias
           (cxml:attribute "name" alias)
           (cxml:attribute "name" name)))
@@ -900,16 +906,26 @@
        (parse-docstring-1 stream handler close)
        (sax:end-element handler nil name name)))))
 
+#+nil
 (defun munge-name-section (name)
   (format nil "~A"
+          (cl-ppcre:regex-replace-all "[ /\*%<>]" name "_")))
+
+(defun munge-name-section (name kind)
+  (format nil "~A_~A_~A"
+          *package-name*
+          kind
           (cl-ppcre:regex-replace-all "[ /\*%<>]" name "_")))
 
 (defun parse-docstring-element-section (stream handler name arg close)
   (let ((attrs '()))
     (push (sax:make-attribute :qname "id"
                               :value
-                              (munge-name-section (string-downcase arg)))
+                              (munge-name-section (string-downcase arg) name))
 
+          attrs)
+    (push (sax:make-attribute :qname "package-name"
+                              :value *package-name*) ; FIXME: use the alias name
           attrs)
     (when arg
       (push (sax:make-attribute :qname name :value arg) attrs))

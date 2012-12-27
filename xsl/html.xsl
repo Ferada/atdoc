@@ -122,9 +122,18 @@
                     <ul>
                       <xsl:for-each select="sections/section">
                         <li>
+                          <xsl:choose>
+                            <xsl:when test="/documentation/@paginate-section-p">
+                              <a href="{concat('pages/', @id, '.html')}">
+                                <xsl:value-of select="@section"/>
+                              </a>
+                            </xsl:when>
+                            <xsl:otherwise>
                           <a href="{$url}#{generate-id()}">
                             <xsl:value-of select="@section"/>
                           </a>
+                            </xsl:otherwise>
+                          </xsl:choose>
                         </li>
                       </xsl:for-each>
                     </ul>
@@ -149,6 +158,128 @@
   </xsl:template>
 
   <xsl:template match="package">
+    <xsl:choose>
+      <xsl:when test="/documentation/@paginate-section-p">
+    <!-- Generate the first page: Content -->
+    <page base="../"
+          pathname="pages/{@id}.html"
+          title="Package {@name}"
+          author="{/documentation/@author}"
+          author-url="{/documentation/@author-url}"
+          date="{/documentation/@date}"
+          keywords="Lisp, Documentation, Package, {@name}">
+      <padded>
+        <xsl:if test="count(../package) > 1">
+          <p class="noindent">
+            Up:
+            <a href="../index.html">
+              <xsl:value-of select="/documentation/@index-title"/>
+            </a>
+          </p>
+        </xsl:if>
+        <h1>
+          Package
+          <xsl:value-of select="@name"/>
+        </h1>
+        <xsl:apply-templates select="documentation-string"/>
+      </padded>
+      <columns>
+        <column width="60%">
+          <padded>
+            <xsl:if test="sections">
+              <div style="margin-left: -30px">
+                <h3>About This Package</h3>
+              </div>
+              <xsl:for-each select="sections/section">
+                <a href="{@id}.html" style="font-weight: bold">
+                  <xsl:value-of select="@section"/>
+                </a>
+                <br/>
+              </xsl:for-each>
+              <br/>
+
+            </xsl:if>
+          </padded>
+        </column>
+        <column>
+          <h3><a name="index"></a>Exported Symbol Index</h3>
+          <xsl:apply-templates select="external-symbols" mode="symbol-index"/>
+        </column>
+      </columns>
+    </page>
+    <!-- Now generate a page for each section -->
+    <xsl:for-each select="sections/section">
+    
+    <page base="../"
+          pathname="pages/{@id}.html"
+          title="Package {package/@name}"
+          author="{/documentation/@author}"
+          author-url="{/documentation/@author-url}"
+          date="{/documentation/@date}"
+          keywords="Lisp, Documentation, Package, {@name}">
+
+        <xsl:variable name="in-section" select="@section"/>
+      <padded>
+
+          <p class="noindent">
+            Package:
+            <a href= "{../../@id}.html">
+              <xsl:value-of select="../../@name"/>
+            </a>
+            - Section:
+            <xsl:value-of select="@section"/>
+          </p>
+
+        <h1>
+          Package
+          <xsl:value-of select="../../@name"/>
+        </h1>
+        <xsl:apply-templates select="../../documentation-string"/>
+      </padded>
+      <columns>
+        <column width="60%">
+          <padded>
+            <xsl:if test="../../sections">
+              <div style="margin-left: -30px">
+                <h3>About This Package</h3>
+              </div>
+
+              <xsl:for-each select="../../sections/section">
+                <xsl:choose>
+                  <xsl:when test="@section = $in-section">
+                    <xsl:value-of select="@section"/>
+                  </xsl:when>
+                  <xsl:otherwise>
+                    <a href="{@id}.html" style="font-weight: bold">
+                      <xsl:value-of select="@section"/>
+                    </a>
+                  </xsl:otherwise>
+                </xsl:choose>
+                <br/>
+              </xsl:for-each>
+
+              <br/>
+      <h2>
+        <a name="{@id}.html"/>
+        <xsl:value-of select="@section"/>
+      </h2>
+              <xsl:apply-templates/>
+            </xsl:if>
+          </padded>
+        </column>
+        <column>
+          <h3><a name="index"></a>Exported Symbol Index</h3>
+          <xsl:apply-templates select="../../external-symbols" mode="symbol-index"/>
+        </column>
+      </columns>
+    </page>
+
+    </xsl:for-each>
+
+
+      </xsl:when>
+
+      <xsl:otherwise>
     <page base="../"
           pathname="pages/{@id}.html"
           title="Package {@name}"
@@ -195,6 +326,9 @@
         </column>
       </columns>
     </page>
+      </xsl:otherwise>
+    </xsl:choose>
+
   </xsl:template>
 
 

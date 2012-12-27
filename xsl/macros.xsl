@@ -30,13 +30,13 @@
     <extra:choose>
       <extra:when test="{@test}">
         <columns width="100%">
-          <column width="60%">
+          <column width="75%">
             <xsl:apply-templates/>
           </column>
           <column width="5%">
             &#160;
           </column>
-          <column width="35%">
+          <column width="20%">
             <extra:call-template name="main-right"/>
           </column>
         </columns>
