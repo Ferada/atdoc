@@ -96,7 +96,7 @@
   </xsl:template>
 
   <xsl:template match="columns">
-    <table cellspacing="0" cellpadding="0">
+    <table table-layout="fixed" width="100%" cellspacing="0" cellpadding="0">
       <xsl:apply-templates select="@*"/>
       <tr>
         <xsl:apply-templates/>
