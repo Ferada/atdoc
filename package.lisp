@@ -5,8 +5,11 @@
 (defpackage :atdoc
   (:use :cl)
   (:export #:*external-symbols*
-           #:*kind-name-alias*
            #:*symbol-name-alias*
+           #:*variable-name-alias*
+           #:*function-name-alias*
+           #:*type-name-alias*
+           #:*class-name-alias*
            #:get-slot-from-name
            #:generate-html-documentation
 	   #:generate-latex-documentation
