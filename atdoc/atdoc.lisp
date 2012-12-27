@@ -46,7 +46,7 @@
       output-directory
       :author "Crategus"
       :author-url "http://www.crategus.com"
-      :index-title "atdoc API reference"
+      :index-title "atdoc API documentation"
       :heading "atdoc"
       :css "crategus.css"
       :logo nil
@@ -63,7 +63,7 @@
       output-directory
       :author "Crategus"
       :author-url "http://www.crategus.com"
-      :index-title "atdoc API reference"
+      :index-title "atdoc API documentation"
       :heading "atdoc"
       :css "crategus.css"
       :logo nil
