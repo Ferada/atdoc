@@ -90,7 +90,7 @@
         (setf file (merge-pathnames file base))))
     (namestring file)))
 
-#+(or sbcl lispworks)
+#+(or sbcl lispworks ccl)
 (defun run-shell-command (directory output command &rest args)
   ;; fixme: escape the namestrings properly, or use a function calling
   ;; exec rather system.
@@ -710,7 +710,8 @@
       (labels ((recurse (c)
                  (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
                               #+allegro (aclmop:class-direct-subclasses c)
-                              #+lispworks (hcl:class-direct-subclasses c))
+                              #+lispworks (hcl:class-direct-subclasses c)
+                              #+ccl (ccl:class-direct-subclasses c))
                    (if (good-symbol-p (class-name sub) other-packages)
                        (cxml:with-element "subclass"
                          (random-name (class-name sub) other-packages "class"))
@@ -744,7 +745,8 @@
       (labels ((recurse (c)
                  (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
                               #+allegro (aclmop:class-direct-subclasses c)
-                              #+lispworks (hcl:class-direct-subclasses c))
+                              #+lispworks (hcl:class-direct-subclasses c)
+                              #+ccl (ccl:class-direct-subclasses c))
                    (if (good-symbol-p (class-name sub) other-packages)
                        (cxml:with-element "subclass"
                          (random-name (class-name sub) other-packages "class"))
@@ -776,7 +778,8 @@
       (labels ((recurse (c)
                  (dolist (sub #+sbcl (sb-pcl:class-direct-subclasses c)
                               #+allegro (aclmop:class-direct-subclasses c)
-                              #+lispworks (hcl:class-direct-subclasses c))
+                              #+lispworks (hcl:class-direct-subclasses c)
+                              #+ccl (ccl:class-direct-subclasses c))
                    (if (good-symbol-p (class-name sub)
                                       (cons (find-package :common-lisp)
                                             other-packages))
